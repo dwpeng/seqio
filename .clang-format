@@ -1,0 +1,23 @@
+---
+BasedOnStyle: GNU
+IndentWidth: 2
+
+AlignAfterOpenBracket: Align
+AllowShortBlocksOnASingleLine: false
+AlwaysBreakTemplateDeclarations: true
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+CompactNamespaces: true
+FixNamespaceComments: true
+MaxEmptyLinesToKeep: 1
+PointerAlignment: Left
+SortIncludes: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+UseTab: Never
+BinPackArguments: true
+BinPackParameters: false
+AlignTrailingComments: true
+---
