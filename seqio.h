@@ -67,9 +67,16 @@ typedef struct {
   seqOpenMode mode;
 } seqioOpenOptions;
 
+typedef enum {
+  seqioBaseCaseLower,
+  seqioBaseCaseUpper,
+  seqioBaseCaseOriginal
+} baseCase;
+
 typedef struct {
   size_t lineWidth;
   bool includeComment;
+  baseCase baseCase;
 } seqioWriteOptions;
 
 typedef struct {
@@ -91,15 +98,16 @@ typedef struct {
 #define defaultSeqioWriteOptions                                              \
   {                                                                           \
     .lineWidth = seqioDefaultLineWidth,                                       \
-    .includeComment = seqioDefaultincludeComment                              \
+    .includeComment = seqioDefaultincludeComment;                             \
+    .baseCase = baseCaseOriginal                                              \
   }
 
 seqioFile* seqioOpen(seqioOpenOptions* options);
 void seqioClose(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);
-seqioFastaRecord* seqioReadFasta(seqioFile* sf);
-seqioFastqRecord* seqioReadFastq(seqioFile* sf);
-void seqioFreeRecord(seqioRecord* record);
+seqioFastaRecord* seqioReadFasta(seqioFile* sf, seqioFastaRecord* record);
+seqioFastqRecord* seqioReadFastq(seqioFile* sf, seqioFastqRecord* record);
+void seqioFreeRecord(void* record);
 void seqioWriteFasta(seqioFile* sf,
                      seqioFastaRecord* record,
                      seqioWriteOptions* options);

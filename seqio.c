@@ -58,19 +58,36 @@ clearBuffer(seqioFile* sf)
 }
 
 static inline void
-cousumeBufferOne(seqioFile* sf)
+forwardBufferOne(seqioFile* sf)
 {
   assert(sf->buffer.left > 0);
   sf->buffer.offset += 1;
   sf->buffer.left -= 1;
 }
 
+static inline void
+backwardBufferOne(seqioFile* sf)
+{
+  assert(sf->buffer.offset > 0);
+  sf->buffer.offset -= 1;
+  sf->buffer.left += 1;
+}
+
 static inline size_t
 readDataToBuffer(seqioFile* sf)
 {
   ensureReadable(sf);
-  if (sf->pravite.isEOF) {
+  if (sf->pravite.isEOF && sf->buffer.left == 0) {
     return 0;
+  }
+  if (sf->pravite.isEOF && sf->buffer.left > 0) {
+    memmove(sf->buffer.data, sf->buffer.data + sf->buffer.offset,
+            sf->buffer.left);
+    sf->buffer.offset = 0;
+    return sf->buffer.left;
+  }
+  if (sf->buffer.left == sf->buffer.capacity) {
+    return sf->buffer.left;
   }
   size_t readSize = 0;
   size_t needReadSize = sf->buffer.capacity - sf->buffer.left;
@@ -87,7 +104,7 @@ readDataToBuffer(seqioFile* sf)
   }
 #else
   readSize =
-      fread(sf->buffer.data + sf->buffer.offset, 1, needReadSize, file->file);
+      fread(sf->buffer.data + sf->buffer.offset, 1, needReadSize, sf->file);
 #endif
   if (readSize < needReadSize) {
     sf->pravite.isEOF = true;
@@ -96,22 +113,53 @@ readDataToBuffer(seqioFile* sf)
   return readSize;
 }
 
-// TODO offset/left
-static inline size_t
-writeDataFromBuffer(seqioFile* sf)
+static inline void
+freshDataToFile(seqioFile* sf)
 {
   ensureWriteable(sf);
-  size_t writeSize = 0;
+#ifdef DEBUG
+  for (size_t i = 0; i < sf->buffer.left; i++) {
+    printf("%c", sf->buffer.data[sf->buffer.offset + i]);
+  }
+#endif
+  if (sf->buffer.left == 0) {
+    return;
+  }
 #ifdef enable_gzip
   if (sf->options->isGzipped) {
-    writeSize = gzwrite(sf->file, sf->buffer.data, sf->buffer.capacity);
+    gzwrite(sf->file, sf->buffer.data + sf->buffer.offset, sf->buffer.left);
   } else {
-    writeSize = fwrite(sf->buffer.data, 1, sf->buffer.capacity, sf->file);
+    fwrite(sf->buffer.data + sf->buffer.offset, 1, sf->buffer.left, sf->file);
   }
 #else
-  writeSize = fwrite(file->buffer.data, 1, file->buffer.capacity, file->file);
+  fwrite(sf->buffer.data + sf->buffer.offset, 1, sf->buffer.left, sf->file);
 #endif
-  return writeSize;
+  sf->buffer.offset = 0;
+  sf->buffer.left = 0;
+}
+
+static inline void
+writeDataFromBuffer(seqioFile* sf, char* data, size_t length)
+{
+  ensureWriteable(sf);
+  size_t needWriteSize = sf->buffer.left + length;
+  while (needWriteSize) {
+    if (needWriteSize <= sf->buffer.capacity) {
+      memcpy(sf->buffer.data + sf->buffer.offset + sf->buffer.left, data,
+             needWriteSize);
+      sf->buffer.left += needWriteSize;
+      freshDataToFile(sf);
+      return;
+    } else {
+      size_t writeSize = sf->buffer.capacity - sf->buffer.left;
+      memcpy(sf->buffer.data + sf->buffer.offset + sf->buffer.left, data,
+             writeSize);
+      sf->buffer.left += writeSize;
+      freshDataToFile(sf);
+      data += writeSize;
+      needWriteSize -= writeSize;
+    }
+  }
 }
 
 static inline void
@@ -124,7 +172,7 @@ resetFilePointer(seqioFile* sf)
     fseek(sf->file, 0, SEEK_SET);
   }
 #else
-  fseek(file->file, sf->pravite.offset, SEEK_SET);
+  fseek(file->file, 0, SEEK_SET);
 #endif
   sf->pravite.isEOF = false;
   sf->buffer.left = 0;
@@ -140,6 +188,21 @@ seqioOpen(seqioOpenOptions* options)
   }
   sf->options = options;
 #ifdef enable_gzip
+  if (options->mode == seqOpenModeRead) {
+    FILE* fp = fopen(options->filename, "rb");
+    if (fp == NULL) {
+      seqioFree(sf);
+      return NULL;
+    }
+    unsigned char magic[2] = { 0 };
+    fread(magic, 1, 2, fp);
+    fclose(fp);
+    if (magic[0] == 0x1f && magic[1] == 0x8b) {
+      options->isGzipped = true;
+    } else {
+      options->isGzipped = false;
+    }
+  }
   if (options->isGzipped) {
     sf->file = gzopen(options->filename, getOpenModeStr(options));
     if (sf->file == NULL) {
@@ -148,7 +211,7 @@ seqioOpen(seqioOpenOptions* options)
       return NULL;
     }
   } else {
-    sf->file = NULL;
+    sf->file = fopen(options->filename, getOpenModeStr(options));
   }
 #else
   file->file = fopen(options->filename, getOpenModeStr(options));
@@ -172,7 +235,6 @@ seqioOpen(seqioOpenOptions* options)
   sf->pravite.isEOF = false;
   if (options->mode == seqOpenModeRead || options->mode == seqOpenModeAppend) {
     seqioGuessType(sf);
-    resetFilePointer(sf);
   }
   return sf;
 }
@@ -191,7 +253,7 @@ seqioClose(seqioFile* sf)
       fclose(sf->file);
     }
 #else
-    fclose(file->file);
+    fclose(sf->file);
 #endif
   }
   if (sf->buffer.data != NULL) {
@@ -253,6 +315,7 @@ seqioStringNew(size_t capacity)
   }
   memset(string->data, 0, capacity);
   string->length = 0;
+  string->capacity = capacity;
   return string;
 }
 
@@ -266,6 +329,14 @@ seqioStringFree(seqioString* string)
     seqioFree(string->data);
   }
   seqioFree(string);
+}
+
+static inline seqioString*
+seqioStringClear(seqioString* string)
+{
+  memset(string->data, 0, string->length);
+  string->length = 0;
+  return string;
 }
 
 static inline seqioString*
@@ -284,18 +355,34 @@ seqioStringAppend(seqioString* string, char* data, size_t length)
   return string;
 }
 
+static inline seqioString*
+seqioStringAppendChar(seqioString* string, char c)
+{
+  if (string->length + 1 > string->capacity) {
+    string->capacity = string->capacity * 2;
+    string->data = (char*)seqioRealloc(string->data, string->capacity);
+    if (string->data == NULL) {
+      return NULL;
+    }
+    memset(string->data + string->length, 0, 1);
+  }
+  string->data[string->length] = c;
+  string->length += 1;
+  return string;
+}
+
 void
-seqioFreeRecord(seqioRecord* record)
+seqioFreeRecord(void* record)
 {
   if (record == NULL) {
     return;
   }
-  if (record->type == seqioRecordTypeFasta) {
+  if (((seqioRecord*)record)->type == seqioRecordTypeFasta) {
     seqioFastaRecord* fastaRecord = (seqioFastaRecord*)record;
     seqioStringFree(fastaRecord->name);
     seqioStringFree(fastaRecord->comment);
     seqioStringFree(fastaRecord->sequence);
-  } else if (record->type == seqioRecordTypeFastq) {
+  } else if (((seqioRecord*)record)->type == seqioRecordTypeFastq) {
     seqioFastqRecord* fastqRecord = (seqioFastqRecord*)record;
     seqioStringFree(fastqRecord->name);
     seqioStringFree(fastqRecord->comment);
@@ -325,29 +412,280 @@ ensureFastaRecord(seqioFile* sf)
   }
 }
 
+typedef enum {
+  READ_STATUS_NONE,
+  READ_STATUS_NAME,
+  READ_STATUS_COMMENT,
+  READ_STATUS_SEQUENCE,
+  READ_STATUS_QUALITY,
+  READ_STATUS_ADD,
+} readStatus;
+
 seqioFastaRecord*
-seqioReadFasta(seqioFile* sf)
+seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
 {
-  if (sf->pravite.isEOF) {
+  if (sf->pravite.isEOF && sf->buffer.left == 0) {
+    seqioFreeRecord(record);
     return NULL;
   }
-  ensureFastaRecord(sf);
-  seqioFastaRecord* record =
-      (seqioFastaRecord*)seqioMalloc(sizeof(seqioFastaRecord));
   if (record == NULL) {
-    return NULL;
+    record = (seqioFastaRecord*)seqioMalloc(sizeof(seqioFastaRecord));
+    if (record == NULL) {
+      return NULL;
+    }
+    record->base.type = seqioRecordTypeFasta;
+    record->name = seqioStringNew(10);
+    record->comment = seqioStringNew(10);
+    record->sequence = seqioStringNew(128);
+  } else {
+    record->base.type = seqioRecordTypeFasta;
+    record->name = seqioStringClear(record->name);
+    record->comment = seqioStringClear(record->comment);
+    record->sequence = seqioStringClear(record->sequence);
   }
-  record->base.type = seqioRecordTypeFasta;
-  record->name = seqioStringNew(50);
-  record->comment = seqioStringNew(50);
-  record->sequence = seqioStringNew(256);
+  readStatus status = READ_STATUS_NONE;
+  int c;
   while (1) {
     size_t readSize = readDataToBuffer(sf);
     if (readSize == 0) {
       break;
     }
     for (size_t i = 0; i < readSize; i++) {
+      c = sf->buffer.data[i];
+      forwardBufferOne(sf);
+      if (c == '\r') {
+        continue;
+      }
+      switch (status) {
+      case READ_STATUS_NONE: {
+        if (c == '>') {
+          status = READ_STATUS_NAME;
+        }
+        break;
+      }
+      case READ_STATUS_NAME: {
+        if (c == ' ') {
+          status = READ_STATUS_COMMENT;
+        } else if (c == '\n') {
+          status = READ_STATUS_SEQUENCE;
+        } else {
+          seqioStringAppendChar(record->name, c);
+        }
+        break;
+      }
+      case READ_STATUS_COMMENT: {
+        if (c == '\n') {
+          status = READ_STATUS_SEQUENCE;
+        } else {
+          seqioStringAppendChar(record->comment, c);
+        }
+        break;
+      }
+      case READ_STATUS_SEQUENCE: {
+        if (c == '>') {
+          backwardBufferOne(sf);
+          return record;
+        } else if (c == '\n') {
+          continue;
+        } else {
+          seqioStringAppendChar(record->sequence, c);
+        }
+        break;
+      }
+      default: {
+        break;
+      }
+      }
     }
   }
   return record;
+}
+
+seqioFastqRecord*
+seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
+{
+  if (sf->pravite.isEOF && sf->buffer.left == 0) {
+    seqioFreeRecord(record);
+    return NULL;
+  }
+  if (record == NULL) {
+    record = (seqioFastqRecord*)seqioMalloc(sizeof(seqioFastqRecord));
+    if (record == NULL) {
+      return NULL;
+    }
+    record->base.type = seqioRecordTypeFastq;
+    record->name = seqioStringNew(10);
+    record->comment = seqioStringNew(10);
+    record->sequence = seqioStringNew(128);
+    record->quality = seqioStringNew(128);
+  } else {
+    record->base.type = seqioRecordTypeFastq;
+    record->name = seqioStringClear(record->name);
+    record->comment = seqioStringClear(record->comment);
+    record->sequence = seqioStringClear(record->sequence);
+    record->quality = seqioStringClear(record->quality);
+  }
+  readStatus status = READ_STATUS_NONE;
+  int c;
+  while (1) {
+    size_t readSize = readDataToBuffer(sf);
+    if (readSize == 0) {
+      break;
+    }
+    for (size_t i = 0; i < readSize; i++) {
+      c = sf->buffer.data[i];
+      forwardBufferOne(sf);
+      if (c == '\r') {
+        continue;
+      }
+      switch (status) {
+      case READ_STATUS_NONE: {
+        if (c == '@') {
+          status = READ_STATUS_NAME;
+        }
+        break;
+      }
+      case READ_STATUS_NAME: {
+        if (c == ' ') {
+          status = READ_STATUS_COMMENT;
+        } else if (c == '\n') {
+          status = READ_STATUS_SEQUENCE;
+        } else {
+          seqioStringAppendChar(record->name, c);
+        }
+        break;
+      }
+      case READ_STATUS_COMMENT: {
+        if (c == '\n') {
+          status = READ_STATUS_SEQUENCE;
+        } else {
+          seqioStringAppendChar(record->comment, c);
+        }
+        break;
+      }
+      case READ_STATUS_SEQUENCE: {
+        if (c == '\n') {
+          status = READ_STATUS_ADD;
+        } else {
+          seqioStringAppendChar(record->sequence, c);
+        }
+        break;
+      }
+      case READ_STATUS_ADD: {
+        if (c == '\n') {
+          status = READ_STATUS_QUALITY;
+        }
+        break;
+      }
+      case READ_STATUS_QUALITY: {
+        if (c == '\n') {
+          return record;
+        } else {
+          seqioStringAppendChar(record->quality, c);
+        }
+        break;
+      }
+      default: {
+        break;
+      }
+      }
+    }
+  }
+  return record;
+}
+
+static inline seqioString*
+seqioStringUpper(seqioString* string)
+{
+  for (size_t i = 0; i < string->length; i++) {
+    string->data[i] &= 0xDF;
+  }
+  return string;
+}
+
+static inline seqioString*
+seqioStringLower(seqioString* string)
+{
+  for (size_t i = 0; i < string->length; i++) {
+    string->data[i] |= 0x20;
+  }
+  return string;
+}
+
+void
+seqioWriteFasta(seqioFile* sf,
+                seqioFastaRecord* record,
+                seqioWriteOptions* options)
+{
+  ensureWriteable(sf);
+  if (sf->pravite.type == seqioRecordTypeUnknown) {
+    sf->pravite.type = seqioRecordTypeFasta;
+  }
+  // write name
+  writeDataFromBuffer(sf, ">", 1);
+  writeDataFromBuffer(sf, record->name->data, record->name->length);
+  // write comment
+  if (options->includeComment && record->comment->length) {
+    writeDataFromBuffer(sf, " ", 1);
+    writeDataFromBuffer(sf, record->comment->data, record->comment->length);
+  }
+  writeDataFromBuffer(sf, "\n", 1);
+  // write sequence
+  if (options->baseCase == seqioBaseCaseLower) {
+    seqioStringLower(record->sequence);
+  } else if (options->baseCase == seqioBaseCaseUpper) {
+    seqioStringUpper(record->sequence);
+  }
+  if (options->lineWidth == 0) {
+    writeDataFromBuffer(sf, record->sequence->data, record->sequence->length);
+  } else {
+    size_t sequenceLength = record->sequence->length;
+    size_t sequenceOffset = 0;
+    while (sequenceLength) {
+      if (sequenceLength >= options->lineWidth) {
+        writeDataFromBuffer(sf, record->sequence->data + sequenceOffset,
+                            options->lineWidth);
+        writeDataFromBuffer(sf, "\n", 1);
+        sequenceOffset += options->lineWidth;
+        sequenceLength -= options->lineWidth;
+      } else {
+        writeDataFromBuffer(sf, record->sequence->data + sequenceOffset,
+                            sequenceLength);
+        writeDataFromBuffer(sf, "\n", 1);
+        break;
+      }
+    }
+  }
+}
+
+void
+seqioWriteFastq(seqioFile* sf,
+                seqioFastqRecord* record,
+                seqioWriteOptions* options)
+{
+  ensureWriteable(sf);
+  if (sf->pravite.type == seqioRecordTypeUnknown) {
+    sf->pravite.type = seqioRecordTypeFastq;
+  }
+  // write name
+  writeDataFromBuffer(sf, "@", 1);
+  writeDataFromBuffer(sf, record->name->data, record->name->length);
+  // write comment
+  if (options->includeComment && record->comment->length) {
+    writeDataFromBuffer(sf, " ", 1);
+    writeDataFromBuffer(sf, record->comment->data, record->comment->length);
+  }
+  writeDataFromBuffer(sf, "\n", 1);
+  // write sequence
+  if (options->baseCase == seqioBaseCaseLower) {
+    seqioStringLower(record->sequence);
+  } else if (options->baseCase == seqioBaseCaseUpper) {
+    seqioStringUpper(record->sequence);
+  }
+  writeDataFromBuffer(sf, record->sequence->data, record->sequence->length);
+  // write add
+  writeDataFromBuffer(sf, "\n+\n", 3);
+  // write quality
+  writeDataFromBuffer(sf, record->quality->data, record->quality->length);
+  writeDataFromBuffer(sf, "\n", 1);
 }
