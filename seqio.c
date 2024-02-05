@@ -1,5 +1,7 @@
 #include "seqio.h"
 #include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zconf.h>
@@ -77,39 +79,28 @@ static inline size_t
 readDataToBuffer(seqioFile* sf)
 {
   ensureReadable(sf);
-  if (sf->pravite.isEOF && sf->buffer.left == 0) {
+  if (sf->buffer.left) {
+    return sf->buffer.left;
+  }
+  if (sf->pravite.isEOF) {
     return 0;
-  }
-  if (sf->pravite.isEOF && sf->buffer.left > 0) {
-    memmove(sf->buffer.data, sf->buffer.data + sf->buffer.offset,
-            sf->buffer.left);
-    sf->buffer.offset = 0;
-    return sf->buffer.left;
-  }
-  if (sf->buffer.left == sf->buffer.capacity) {
-    return sf->buffer.left;
   }
   size_t readSize = 0;
   size_t needReadSize = sf->buffer.capacity - sf->buffer.left;
-  memmove(sf->buffer.data, sf->buffer.data + sf->buffer.offset,
-          sf->buffer.left);
-  sf->buffer.offset = 0;
 #ifdef enable_gzip
   if (sf->options->isGzipped) {
-    readSize =
-        gzread(sf->file, sf->buffer.data + sf->buffer.offset, needReadSize);
+    readSize = gzread(sf->file, sf->buffer.data, needReadSize);
   } else {
-    readSize =
-        fread(sf->buffer.data + sf->buffer.offset, 1, needReadSize, sf->file);
+    readSize = fread(sf->buffer.data, 1, needReadSize, sf->file);
   }
 #else
-  readSize =
-      fread(sf->buffer.data + sf->buffer.offset, 1, needReadSize, sf->file);
+  readSize = fread(sf->buffer.data, 1, needReadSize, sf->file);
 #endif
   if (readSize < needReadSize) {
     sf->pravite.isEOF = true;
   }
-  sf->buffer.left += readSize;
+  sf->buffer.left = readSize;
+  sf->buffer.offset = 0;
   return readSize;
 }
 
@@ -172,7 +163,7 @@ resetFilePointer(seqioFile* sf)
     fseek(sf->file, 0, SEEK_SET);
   }
 #else
-  fseek(file->file, 0, SEEK_SET);
+  fseek(sf->file, 0, SEEK_SET);
 #endif
   sf->pravite.isEOF = false;
   sf->buffer.left = 0;
@@ -214,10 +205,10 @@ seqioOpen(seqioOpenOptions* options)
     sf->file = fopen(options->filename, getOpenModeStr(options));
   }
 #else
-  file->file = fopen(options->filename, getOpenModeStr(options));
-  if (file->file == NULL) {
-    fclose(file->file);
-    free(file);
+  sf->file = fopen(options->filename, getOpenModeStr(options));
+  if (sf->file == NULL) {
+    fclose(sf->file);
+    seqioFree(sf);
     return NULL;
   }
 #endif
@@ -313,7 +304,6 @@ seqioStringNew(size_t capacity)
     seqioFree(string);
     exit(1);
   }
-  memset(string->data, 0, capacity);
   string->length = 0;
   string->capacity = capacity;
   return string;
@@ -334,7 +324,6 @@ seqioStringFree(seqioString* string)
 static inline seqioString*
 seqioStringClear(seqioString* string)
 {
-  memset(string->data, 0, string->length);
   string->length = 0;
   return string;
 }
@@ -348,27 +337,24 @@ seqioStringAppend(seqioString* string, char* data, size_t length)
       return NULL;
     }
     string->capacity = string->length + length;
-    memset(string->data + string->length, 0, length);
   }
   memcpy(string->data + string->length, data, length);
   string->length += length;
   return string;
 }
 
-static inline seqioString*
+static inline void
 seqioStringAppendChar(seqioString* string, char c)
 {
   if (string->length + 1 > string->capacity) {
     string->capacity = string->capacity * 2;
     string->data = (char*)seqioRealloc(string->data, string->capacity);
     if (string->data == NULL) {
-      return NULL;
+      return;
     }
-    memset(string->data + string->length, 0, 1);
   }
   string->data[string->length] = c;
   string->length += 1;
-  return string;
 }
 
 void
@@ -434,9 +420,9 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       return NULL;
     }
     record->base.type = seqioRecordTypeFasta;
-    record->name = seqioStringNew(10);
-    record->comment = seqioStringNew(10);
-    record->sequence = seqioStringNew(128);
+    record->name = seqioStringNew(256);
+    record->comment = seqioStringNew(256);
+    record->sequence = seqioStringNew(256);
   } else {
     record->base.type = seqioRecordTypeFasta;
     record->name = seqioStringClear(record->name);
@@ -450,10 +436,11 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     if (readSize == 0) {
       break;
     }
+    char* buff = sf->buffer.data + sf->buffer.offset;
     for (size_t i = 0; i < readSize; i++) {
-      c = sf->buffer.data[i];
+      c = buff[i];
       forwardBufferOne(sf);
-      if (c == '\r') {
+      if (c == '\r' || c == '\t') {
         continue;
       }
       switch (status) {
@@ -466,8 +453,10 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       case READ_STATUS_NAME: {
         if (c == ' ') {
           status = READ_STATUS_COMMENT;
+          record->name->data[record->name->length] = '\0';
         } else if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
+          record->name->data[record->name->length] = '\0';
         } else {
           seqioStringAppendChar(record->name, c);
         }
@@ -476,6 +465,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       case READ_STATUS_COMMENT: {
         if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
+          record->comment->data[record->comment->length] = '\0';
         } else {
           seqioStringAppendChar(record->comment, c);
         }
@@ -484,6 +474,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       case READ_STATUS_SEQUENCE: {
         if (c == '>') {
           backwardBufferOne(sf);
+          record->sequence->data[record->sequence->length] = '\0';
           return record;
         } else if (c == '\n') {
           continue;
@@ -493,7 +484,11 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
         break;
       }
       default: {
-        break;
+        fprintf(stderr, "Unknown status.\n");
+        fprintf(stderr, "status: %d\n", status);
+        fprintf(stderr, "c: %c\n", c);
+        fflush(stderr);
+        exit(1);
       }
       }
     }

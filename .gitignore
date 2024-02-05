@@ -1,0 +1,6 @@
+*.fna
+*.log
+test-seqio
+test-kseq
+*.json
+*.fna

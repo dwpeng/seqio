@@ -16,7 +16,7 @@
 
 #define seqioDefaultLineWidth 80
 #define seqioDefaultincludeComment false
-#define seqioDefaultBufferSize 1024 * 4
+#define seqioDefaultBufferSize 1024l * 16l
 
 #define seqioMalloc(size) malloc(size)
 #define seqioRealloc(ptr, size) realloc(ptr, size)
@@ -61,9 +61,7 @@ typedef enum {
 
 typedef struct {
   char* filename;
-#ifdef enable_gzip
   bool isGzipped;
-#endif
   seqOpenMode mode;
 } seqioOpenOptions;
 
