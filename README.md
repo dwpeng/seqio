@@ -93,3 +93,10 @@ valgrind --leak-check=full --leak-check=full --show-leak-kinds=all --log-file=./
 ==66714== For lists of detected and suppressed errors, rerun with: -s
 ==66714== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 ```
+
+## test with kseq
+```bash
+make -f Makefile-test
+time ./test-kseq ./test-data/test2.fa
+time ./test-seqio ./test-data/test2.fa
+```
