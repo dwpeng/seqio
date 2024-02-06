@@ -4,3 +4,4 @@ test-seqio
 test-kseq
 *.json
 *.fna
+*.o
