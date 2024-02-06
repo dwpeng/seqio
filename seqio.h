@@ -7,11 +7,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define enable_gzip
 
 #ifdef enable_gzip
 #include <zlib.h>
+#include <zconf.h>
 #endif
 
 #define seqioDefaultLineWidth 80
