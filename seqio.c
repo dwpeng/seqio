@@ -337,6 +337,7 @@ static inline seqioString*
 seqioStringClear(seqioString* string)
 {
   string->length = 0;
+  string->data[0] = '\0';
   return string;
 }
 
