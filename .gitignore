@@ -5,3 +5,6 @@ test-kseq
 *.json
 *.fna
 *.o
+main
+test-seqio
+test-kseq
