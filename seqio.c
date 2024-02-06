@@ -153,6 +153,15 @@ writeDataFromBuffer(seqioFile* sf, char* data, size_t length)
   }
 }
 
+typedef enum {
+  READ_STATUS_NONE,
+  READ_STATUS_NAME,
+  READ_STATUS_COMMENT,
+  READ_STATUS_SEQUENCE,
+  READ_STATUS_QUALITY,
+  READ_STATUS_ADD,
+} readStatus;
+
 static inline void
 resetFilePointer(seqioFile* sf)
 {
@@ -166,6 +175,7 @@ resetFilePointer(seqioFile* sf)
   fseek(sf->file, 0, SEEK_SET);
 #endif
   sf->pravite.isEOF = false;
+  sf->pravite.state = READ_STATUS_NONE;
   sf->buffer.left = 0;
   sf->buffer.offset = 0;
 }
@@ -222,6 +232,7 @@ seqioOpen(seqioOpenOptions* options)
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
   sf->pravite.type = seqioRecordTypeUnknown;
+  sf->pravite.state = READ_STATUS_NONE;
   sf->record = NULL;
   sf->pravite.isEOF = false;
   if (options->mode == seqOpenModeRead || options->mode == seqOpenModeAppend) {
@@ -398,15 +409,6 @@ ensureFastaRecord(seqioFile* sf)
   }
 }
 
-typedef enum {
-  READ_STATUS_NONE,
-  READ_STATUS_NAME,
-  READ_STATUS_COMMENT,
-  READ_STATUS_SEQUENCE,
-  READ_STATUS_QUALITY,
-  READ_STATUS_ADD,
-} readStatus;
-
 seqioFastaRecord*
 seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
 {
@@ -429,15 +431,25 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     record->comment = seqioStringClear(record->comment);
     record->sequence = seqioStringClear(record->sequence);
   }
-  readStatus status = READ_STATUS_NONE;
+  readStatus status = sf->pravite.state;
   int c;
+  int start_parse_sequence = 0;
   while (1) {
+    if(start_parse_sequence){
+      break;
+    }
+    if (status == READ_STATUS_SEQUENCE) {
+      break;
+    }
     size_t readSize = readDataToBuffer(sf);
     if (readSize == 0) {
       break;
     }
     char* buff = sf->buffer.data + sf->buffer.offset;
     for (size_t i = 0; i < readSize; i++) {
+      if(start_parse_sequence){
+        break;
+      }
       c = buff[i];
       forwardBufferOne(sf);
       if (c == '\r' || c == '\t') {
@@ -466,31 +478,46 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
         if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
           record->comment->data[record->comment->length] = '\0';
+          start_parse_sequence = 1;
         } else {
           seqioStringAppendChar(record->comment, c);
         }
         break;
       }
-      case READ_STATUS_SEQUENCE: {
-        if (c == '>') {
-          backwardBufferOne(sf);
-          record->sequence->data[record->sequence->length] = '\0';
-          return record;
-        } else if (c == '\n') {
-          continue;
-        } else {
-          seqioStringAppendChar(record->sequence, c);
-        }
+      default: {
         break;
       }
-      default: {
-        fprintf(stderr, "Unknown status.\n");
-        fprintf(stderr, "status: %d\n", status);
-        fprintf(stderr, "c: %c\n", c);
-        fflush(stderr);
-        exit(1);
       }
-      }
+    }
+  }
+  while (1) {
+    size_t readSize = readDataToBuffer(sf);
+    if (readSize == 0) {
+      break;
+    }
+    char* buff = sf->buffer.data + sf->buffer.offset;
+    if (buff[0] == '>') {
+      sf->buffer.offset++;
+      sf->buffer.left--;
+      sf->pravite.state = READ_STATUS_NAME;
+      break;
+    }
+    char* sep_stop = memchr(buff, '\n', sf->buffer.left);
+    if (sep_stop == NULL) {
+      seqioStringAppend(record->sequence, buff, sf->buffer.left);
+      sf->buffer.left = 0;
+      sf->buffer.offset = 0;
+      continue;
+    }
+    size_t sep = sep_stop - buff;
+    if (buff[sep - 1] == '\r') {
+      sep--;
+    }
+    sf->buffer.left -= sep + 1;
+    sf->buffer.offset += sep + 1;
+    seqioStringAppend(record->sequence, buff, sep);
+    if (sf->buffer.left == 0) {
+      continue;
     }
   }
   return record;

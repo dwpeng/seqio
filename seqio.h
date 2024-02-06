@@ -90,6 +90,7 @@ typedef struct {
   struct {
     seqioRecordType type;
     bool isEOF;
+    int state;
   } pravite;
 } seqioFile;
 
