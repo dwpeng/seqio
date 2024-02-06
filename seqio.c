@@ -409,6 +409,42 @@ ensureFastaRecord(seqioFile* sf)
   }
 }
 
+static inline void
+readUntil(seqioFile* sf, seqioString* s, char untilChar)
+{
+  while (1) {
+    size_t readSize = readDataToBuffer(sf);
+    if (readSize == 0) {
+      break;
+    }
+    char* buff = sf->buffer.data + sf->buffer.offset;
+    if (buff[0] == untilChar) {
+      sf->buffer.offset++;
+      sf->buffer.left--;
+      sf->pravite.state = READ_STATUS_NAME;
+      break;
+    }
+    char* sep_stop = memchr(buff, '\n', sf->buffer.left);
+    if (sep_stop == NULL) {
+      seqioStringAppend(s, buff, sf->buffer.left);
+      sf->buffer.left = 0;
+      sf->buffer.offset = 0;
+      continue;
+    }
+    size_t sep = sep_stop - buff;
+    if (buff[sep - 1] == '\r') {
+      sep--;
+    }
+    sf->buffer.left -= sep + 1;
+    sf->buffer.offset += sep + 1;
+    seqioStringAppend(s, buff, sep);
+    if (sf->buffer.left == 0) {
+      continue;
+    }
+  }
+}
+
+
 seqioFastaRecord*
 seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
 {
@@ -478,46 +514,20 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
         if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
           record->comment->data[record->comment->length] = '\0';
-          start_parse_sequence = 1;
         } else {
           seqioStringAppendChar(record->comment, c);
         }
         break;
       }
+      case READ_STATUS_SEQUENCE: {
+        backwardBufferOne(sf);
+        readUntil(sf, record->sequence, '>');
+        return record;
+      }
       default: {
         break;
       }
       }
-    }
-  }
-  while (1) {
-    size_t readSize = readDataToBuffer(sf);
-    if (readSize == 0) {
-      break;
-    }
-    char* buff = sf->buffer.data + sf->buffer.offset;
-    if (buff[0] == '>') {
-      sf->buffer.offset++;
-      sf->buffer.left--;
-      sf->pravite.state = READ_STATUS_NAME;
-      break;
-    }
-    char* sep_stop = memchr(buff, '\n', sf->buffer.left);
-    if (sep_stop == NULL) {
-      seqioStringAppend(record->sequence, buff, sf->buffer.left);
-      sf->buffer.left = 0;
-      sf->buffer.offset = 0;
-      continue;
-    }
-    size_t sep = sep_stop - buff;
-    if (buff[sep - 1] == '\r') {
-      sep--;
-    }
-    sf->buffer.left -= sep + 1;
-    sf->buffer.offset += sep + 1;
-    seqioStringAppend(record->sequence, buff, sep);
-    if (sf->buffer.left == 0) {
-      continue;
     }
   }
   return record;
