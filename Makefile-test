@@ -1,0 +1,15 @@
+cc := gcc
+CFLAGS := -O3
+LDFLAGS := -lm -lz
+TEST_DIR := test
+
+all: test-seqio test-kseq
+
+test-seqio: $(TEST_DIR)/test-seqio.c seqio.h seqio.c
+	$(cc) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+test-kseq: $(TEST_DIR)/test-kseq.c $(TEST_DIR)/kseq.h
+	$(cc) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+clean:
+	rm -f test-seqio test-kseq
