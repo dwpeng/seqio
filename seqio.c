@@ -317,6 +317,7 @@ seqioStringNew(size_t capacity)
   }
   string->length = 0;
   string->capacity = capacity;
+  string->data[0] = '\0';
   return string;
 }
 
@@ -410,7 +411,7 @@ ensureFastaRecord(seqioFile* sf)
 }
 
 static inline void
-readUntil(seqioFile* sf, seqioString* s, char untilChar)
+readUntil(seqioFile* sf, seqioString* s, char untilChar, readStatus nextStatus)
 {
   while (1) {
     size_t readSize = readDataToBuffer(sf);
@@ -421,7 +422,7 @@ readUntil(seqioFile* sf, seqioString* s, char untilChar)
     if (buff[0] == untilChar) {
       sf->buffer.offset++;
       sf->buffer.left--;
-      sf->pravite.state = READ_STATUS_NAME;
+      sf->pravite.state = nextStatus;
       break;
     }
     char* sep_stop = memchr(buff, '\n', sf->buffer.left);
@@ -521,7 +522,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       }
       case READ_STATUS_SEQUENCE: {
         backwardBufferOne(sf);
-        readUntil(sf, record->sequence, '>');
+        readUntil(sf, record->sequence, '>', READ_STATUS_NAME);
         return record;
       }
       default: {
@@ -546,10 +547,10 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
       return NULL;
     }
     record->base.type = seqioRecordTypeFastq;
-    record->name = seqioStringNew(10);
-    record->comment = seqioStringNew(10);
-    record->sequence = seqioStringNew(128);
-    record->quality = seqioStringNew(128);
+    record->name = seqioStringNew(128);
+    record->comment = seqioStringNew(128);
+    record->sequence = seqioStringNew(256);
+    record->quality = seqioStringNew(256);
   } else {
     record->base.type = seqioRecordTypeFastq;
     record->name = seqioStringClear(record->name);
@@ -557,15 +558,16 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
     record->sequence = seqioStringClear(record->sequence);
     record->quality = seqioStringClear(record->quality);
   }
-  readStatus status = READ_STATUS_NONE;
+  readStatus status = sf->pravite.state;
   int c;
   while (1) {
     size_t readSize = readDataToBuffer(sf);
     if (readSize == 0) {
       break;
     }
+    char* buff = sf->buffer.data + sf->buffer.offset;
     for (size_t i = 0; i < readSize; i++) {
-      c = sf->buffer.data[i];
+      c = buff[i];
       forwardBufferOne(sf);
       if (c == '\r') {
         continue;
@@ -580,8 +582,10 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
       case READ_STATUS_NAME: {
         if (c == ' ') {
           status = READ_STATUS_COMMENT;
+          record->name->data[record->name->length] = '\0';
         } else if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
+          record->name->data[record->name->length] = '\0';
         } else {
           seqioStringAppendChar(record->name, c);
         }
@@ -590,17 +594,22 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
       case READ_STATUS_COMMENT: {
         if (c == '\n') {
           status = READ_STATUS_SEQUENCE;
+          record->comment->data[record->comment->length] = '\0';
         } else {
           seqioStringAppendChar(record->comment, c);
         }
         break;
       }
       case READ_STATUS_SEQUENCE: {
-        if (c == '\n') {
-          status = READ_STATUS_ADD;
-        } else {
-          seqioStringAppendChar(record->sequence, c);
-        }
+        backwardBufferOne(sf);
+        readUntil(sf, record->sequence, '+', READ_STATUS_ADD);
+        record->sequence->data[record->sequence->length] = '\0';
+        status = READ_STATUS_ADD;
+        backwardBufferOne(sf); // back to '+' line
+        // update i, readSize and buff for next loop
+        i = 0;
+        buff = sf->buffer.data + sf->buffer.offset;
+        readSize = sf->buffer.left;
         break;
       }
       case READ_STATUS_ADD: {
@@ -610,12 +619,10 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
         break;
       }
       case READ_STATUS_QUALITY: {
-        if (c == '\n') {
-          return record;
-        } else {
-          seqioStringAppendChar(record->quality, c);
-        }
-        break;
+        backwardBufferOne(sf);
+        readUntil(sf, record->quality, '@', READ_STATUS_NAME);
+        record->quality->data[record->quality->length] = '\0';
+        return record;
       }
       default: {
         break;
