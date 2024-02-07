@@ -11,10 +11,7 @@ all: main build-test
 main:main.o seqio.o
 	$(cc) $(CFLAGS) -o main $^ $(LIBS)
 
-main.o:main.c
-	$(cc) $(CFLAGS) $(LIBS) -c $<
-
-seqio.o: $(seqioSource)
+^.o:^.c
 	$(cc) $(CFLAGS) $(LIBS) -c $<
 
 build-test:
