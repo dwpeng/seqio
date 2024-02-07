@@ -4,7 +4,7 @@ export ROOT_DIR := $(shell pwd)
 export INCLUDE := $(ROOT_DIR)
 export CFLAGS := -Wall -Wextra -Werror -O3 -I$(INCLUDE)
 export seqioSource := $(ROOT_DIR)/seqio.c 
-export seqioLIB := $(seqioSource:.c=.o)
+export seqioObj := $(seqioSource:.c=.o)
 
 all: main build-test
 
