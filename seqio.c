@@ -14,6 +14,8 @@ static char* openModeStrGzip[] = {
 };
 #endif
 
+static seqioWriteOptions defaultWriteOptions = defaultSeqioWriteOptions;
+
 static inline char*
 getOpenModeStr(seqioOpenOptions* options)
 {
@@ -437,7 +439,7 @@ readUntil(seqioFile* sf, seqioString* s, char untilChar, readStatus nextStatus)
       continue;
     }
     size_t sep = sep_stop - buff;
-    if(!sep){
+    if (!sep) {
       sf->buffer.left--;
       sf->buffer.offset++;
       continue;
@@ -453,7 +455,6 @@ readUntil(seqioFile* sf, seqioString* s, char untilChar, readStatus nextStatus)
     }
   }
 }
-
 
 seqioFastaRecord*
 seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
@@ -481,7 +482,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
   int c;
   int start_parse_sequence = 0;
   while (1) {
-    if(start_parse_sequence){
+    if (start_parse_sequence) {
       break;
     }
     if (status == READ_STATUS_SEQUENCE) {
@@ -493,7 +494,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     }
     char* buff = sf->buffer.data + sf->buffer.offset;
     for (size_t i = 0; i < readSize; i++) {
-      if(start_parse_sequence){
+      if (start_parse_sequence) {
         break;
       }
       c = buff[i];
@@ -667,6 +668,9 @@ seqioWriteFasta(seqioFile* sf,
                 seqioWriteOptions* options)
 {
   ensureWriteable(sf);
+  if (!options) {
+    options = &defaultWriteOptions;
+  }
   if (sf->pravite.type == seqioRecordTypeUnknown) {
     sf->pravite.type = seqioRecordTypeFasta;
   }
@@ -713,6 +717,9 @@ seqioWriteFastq(seqioFile* sf,
                 seqioWriteOptions* options)
 {
   ensureWriteable(sf);
+  if (!options) {
+    options = &defaultWriteOptions;
+  }
   if (sf->pravite.type == seqioRecordTypeUnknown) {
     sf->pravite.type = seqioRecordTypeFastq;
   }

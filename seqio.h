@@ -99,8 +99,8 @@ typedef struct {
 #define defaultSeqioWriteOptions                                              \
   {                                                                           \
     .lineWidth = seqioDefaultLineWidth,                                       \
-    .includeComment = seqioDefaultincludeComment;                             \
-    .baseCase = baseCaseOriginal                                              \
+    .includeComment = seqioDefaultincludeComment,                             \
+    .baseCase = seqioBaseCaseOriginal,                                        \
   }
 
 seqioFile* seqioOpen(seqioOpenOptions* options);
