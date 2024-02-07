@@ -104,11 +104,6 @@ static inline void
 freshDataToFile(seqioFile* sf)
 {
   ensureWriteable(sf);
-#ifdef DEBUG
-  for (size_t i = 0; i < sf->buffer.left; i++) {
-    printf("%c", sf->buffer.data[sf->buffer.offset + i]);
-  }
-#endif
   if (sf->buffer.left == 0) {
     return;
   }
