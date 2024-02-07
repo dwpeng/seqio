@@ -1,4 +1,4 @@
-#include "../seqio.h"
+#include "seqio.h"
 #include <stdio.h>
 
 int
