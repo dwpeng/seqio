@@ -327,35 +327,44 @@ seqioStringFree(seqioString* string)
   seqioFree(string);
 }
 
-static inline seqioString*
+static inline void
 seqioStringClear(seqioString* string)
 {
   string->length = 0;
   string->data[0] = '\0';
-  return string;
+  return;
 }
 
-static inline seqioString*
+// copy from kseq.h
+#define kroundup32(x)                                                         \
+  (--(x), (x) |= (x) >> 1, (x) |= (x) >> 2, (x) |= (x) >> 4, (x) |= (x) >> 8, \
+   (x) |= (x) >> 16, ++(x))
+
+static inline void
 seqioStringAppend(seqioString* string, char* data, size_t length)
 {
   if (string->length + length > string->capacity) {
-    string->data = (char*)seqioRealloc(string->data, string->length + length);
+    size_t newCapacity = string->length + length + 1;
+    kroundup32(newCapacity);
+    string->capacity = newCapacity;
+    string->data = (char*)seqioRealloc(string->data, newCapacity);
     if (string->data == NULL) {
-      return NULL;
+      return;
     }
-    string->capacity = string->length + length;
   }
   memcpy(string->data + string->length, data, length);
   string->length += length;
-  return string;
+  return;
 }
 
 static inline void
 seqioStringAppendChar(seqioString* string, char c)
 {
   if (string->length + 1 > string->capacity) {
-    string->capacity = string->capacity * 2;
-    string->data = (char*)seqioRealloc(string->data, string->capacity);
+    size_t newCapacity = string->length + 1 + 1;
+    kroundup32(newCapacity);
+    string->capacity = newCapacity;
+    string->data = (char*)seqioRealloc(string->data, newCapacity);
     if (string->data == NULL) {
       return;
     }
@@ -428,6 +437,11 @@ readUntil(seqioFile* sf, seqioString* s, char untilChar, readStatus nextStatus)
       continue;
     }
     size_t sep = sep_stop - buff;
+    if(!sep){
+      sf->buffer.left--;
+      sf->buffer.offset++;
+      continue;
+    }
     if (buff[sep - 1] == '\r') {
       sep--;
     }
@@ -459,9 +473,9 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     record->sequence = seqioStringNew(256);
   } else {
     record->base.type = seqioRecordTypeFasta;
-    record->name = seqioStringClear(record->name);
-    record->comment = seqioStringClear(record->comment);
-    record->sequence = seqioStringClear(record->sequence);
+    seqioStringClear(record->name);
+    seqioStringClear(record->comment);
+    seqioStringClear(record->sequence);
   }
   readStatus status = sf->pravite.state;
   int c;
@@ -549,10 +563,10 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
     record->quality = seqioStringNew(256);
   } else {
     record->base.type = seqioRecordTypeFastq;
-    record->name = seqioStringClear(record->name);
-    record->comment = seqioStringClear(record->comment);
-    record->sequence = seqioStringClear(record->sequence);
-    record->quality = seqioStringClear(record->quality);
+    seqioStringClear(record->name);
+    seqioStringClear(record->comment);
+    seqioStringClear(record->sequence);
+    seqioStringClear(record->quality);
   }
   readStatus status = sf->pravite.state;
   int c;
