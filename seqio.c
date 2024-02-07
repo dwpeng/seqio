@@ -518,6 +518,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       case READ_STATUS_SEQUENCE: {
         backwardBufferOne(sf);
         readUntil(sf, record->sequence, '>', READ_STATUS_NAME);
+        record->sequence->data[record->sequence->length] = '\0';
         return record;
       }
       default: {
