@@ -115,7 +115,4 @@ void seqioWriteFasta(seqioFile* sf,
 void seqioWriteFastq(seqioFile* sf,
                      seqioFastqRecord* record,
                      seqioWriteOptions* options);
-
-seqioString* seqioLowercase(seqioString* s);
-seqioString* seqioUppercase(seqioString* s);
 #endif // __seqio_h__
