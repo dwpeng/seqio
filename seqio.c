@@ -202,7 +202,7 @@ seqioOpen(seqioOpenOptions* options)
     sf->file = gzopen(options->filename, getOpenModeStr(options));
     if (sf->file == NULL) {
       fclose(sf->file);
-      free(sf);
+      seqioFree(sf);
       return NULL;
     }
   } else {
@@ -219,7 +219,7 @@ seqioOpen(seqioOpenOptions* options)
   sf->buffer.data = (char*)seqioMalloc(seqioDefaultBufferSize);
   if (sf->buffer.data == NULL) {
     fclose(sf->file);
-    free(sf);
+    seqioFree(sf);
     return NULL;
   }
   sf->buffer.capacity = seqioDefaultBufferSize;
