@@ -392,21 +392,19 @@ seqioFreeRecord(void* record)
 }
 
 static inline void
-ensureFastqRecord(seqioFile* sf)
+ensureFastqRecord(seqioFile* sf, const char* msg)
 {
   if (sf->pravite.type != seqioRecordTypeFastq) {
-    fprintf(stderr,
-            "Cannot write fastq record to a file opened in fasta mode.\n");
+    fprintf(stderr, "%s\n", msg);
     exit(1);
   }
 }
 
 static inline void
-ensureFastaRecord(seqioFile* sf)
+ensureFastaRecord(seqioFile* sf, const char* msg)
 {
   if (sf->pravite.type != seqioRecordTypeFasta) {
-    fprintf(stderr,
-            "Cannot write fasta record to a file opened in fastq mode.\n");
+    fprintf(stderr, "%s\n", msg);
     exit(1);
   }
 }
@@ -458,6 +456,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     seqioFreeRecord(record);
     return NULL;
   }
+  ensureFastaRecord(sf, "Cannot read fasta record from a fastq file.");
   if (record == NULL) {
     record = (seqioFastaRecord*)seqioMalloc(sizeof(seqioFastaRecord));
     if (record == NULL) {
@@ -547,6 +546,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
     seqioFreeRecord(record);
     return NULL;
   }
+  ensureFastqRecord(sf, "Cannot read fastq record from a fasta file.");
   if (record == NULL) {
     record = (seqioFastqRecord*)seqioMalloc(sizeof(seqioFastqRecord));
     if (record == NULL) {
