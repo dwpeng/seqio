@@ -8,3 +8,4 @@ test-kseq
 main
 test-seqio
 test-kseq
+*.so

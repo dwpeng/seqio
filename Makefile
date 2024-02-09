@@ -6,7 +6,7 @@ export CFLAGS := -Wall -Wextra -Werror -O3 -I$(INCLUDE)
 export seqioSource := $(ROOT_DIR)/seqio.c 
 export seqioObj := $(seqioSource:.c=.o)
 
-all: main build-test
+all: main build-test libseqio.so
 
 main:main.o seqio.o
 	$(cc) $(CFLAGS) -o main $^ $(LIBS)
@@ -16,6 +16,11 @@ main:main.o seqio.o
 
 build-test:
 	$(MAKE) -C ./test
+
+libseqio.so:
+	rm -f *.o libseqio.so
+	$(cc) $(CFLAGS) -fPIC -c -o seqio.o seqio.c
+	$(cc) -shared -fPIC -o libseqio.so seqio.o
 
 clean:
 	rm -f main.o seqio.o main test-seqio test-kseq
