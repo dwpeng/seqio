@@ -18,11 +18,10 @@ build-test:
 	$(MAKE) -C ./test
 
 libseqio.so:
-	rm -f *.o libseqio.so
 	$(cc) $(CFLAGS) -fPIC -c -o seqio.o seqio.c
 	$(cc) -shared -fPIC -o libseqio.so seqio.o
 
 clean:
-	rm -f main.o seqio.o main test-seqio test-kseq
+	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so
 
 .PHONY:clean
