@@ -474,11 +474,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
   }
   readStatus status = sf->pravite.state;
   int c;
-  int start_parse_sequence = 0;
   while (1) {
-    if (start_parse_sequence) {
-      break;
-    }
     if (status == READ_STATUS_SEQUENCE) {
       break;
     }
@@ -488,9 +484,6 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     }
     char* buff = sf->buffer.data + sf->buffer.offset;
     for (size_t i = 0; i < readSize; i++) {
-      if (start_parse_sequence) {
-        break;
-      }
       c = buff[i];
       forwardBufferOne(sf);
       if (c == '\r' || c == '\t') {
