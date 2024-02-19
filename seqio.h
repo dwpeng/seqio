@@ -41,14 +41,14 @@ typedef struct {
 } seqioString;
 
 typedef struct {
-  seqioRecord base;
+  seqioRecordType type;
   seqioString* name;
   seqioString* comment;
   seqioString* sequence;
 } seqioFastaRecord;
 
 typedef struct {
-  seqioRecord base;
+  seqioRecordType type;
   seqioString* name;
   seqioString* comment;
   seqioString* sequence;
@@ -108,6 +108,7 @@ void seqioClose(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);
 seqioFastaRecord* seqioReadFasta(seqioFile* sf, seqioFastaRecord* record);
 seqioFastqRecord* seqioReadFastq(seqioFile* sf, seqioFastqRecord* record);
+seqioRecord* seqioRead(seqioFile* sf, seqioRecord* record);
 void seqioFreeRecord(void* record);
 void seqioWriteFasta(seqioFile* sf,
                      seqioFastaRecord* record,
