@@ -17,7 +17,7 @@ main(int argc, char* argv[])
   fp = gzopen(argv[1], "r");
   seq = kseq_init(fp);
   while ((l = kseq_read(seq)) >= 0) {
-    printf("name: %s: length: %lu\n", seq->name.s, seq->seq.l);
+    // printf("name: %s: length: %lu\n", seq->name.s, seq->seq.l);
   }
   kseq_destroy(seq);
   gzclose(fp);

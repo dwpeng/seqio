@@ -13,9 +13,9 @@ main(int argc, char* argv[])
     .mode = seqOpenModeRead,
   };
   seqioFile* sf = seqioOpen(&openOptions);
-  seqioFastaRecord* fastaRecord = NULL;
-  while ((fastaRecord = seqioReadFasta(sf, fastaRecord)) != NULL) {
-    printf("name: %s: length: %lu\n", fastaRecord->name->data, fastaRecord->sequence->length);
+  seqioRecord* Record = NULL;
+  while ((Record = seqioRead(sf, Record)) != NULL) {
+    // printf("name: %s: length: %lu\n", fastaRecord->name->data, fastaRecord->sequence->length);
   }
   seqioClose(sf);
 }
