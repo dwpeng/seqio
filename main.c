@@ -5,7 +5,6 @@ main()
 {
   seqioOpenOptions openOptions1 = {
     .filename = "./test-data/test1.fa.gz",
-    .mode = seqOpenModeRead,
   };
   seqioFile* sf1 = seqioOpen(&openOptions1);
 
@@ -18,7 +17,6 @@ main()
 
   seqioOpenOptions openOptions3 = {
     .filename = "./test-data/test3.fq.gz",
-    .mode = seqOpenModeRead,
   };
   seqioFile* sf3 = seqioOpen(&openOptions3);
 
