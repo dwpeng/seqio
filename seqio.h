@@ -105,6 +105,7 @@ typedef struct {
 
 seqioFile* seqioOpen(seqioOpenOptions* options);
 void seqioClose(seqioFile* sf);
+void seqioReset(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);
 seqioFastaRecord* seqioReadFasta(seqioFile* sf, seqioFastaRecord* record);
 seqioFastqRecord* seqioReadFastq(seqioFile* sf, seqioFastqRecord* record);

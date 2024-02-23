@@ -272,6 +272,22 @@ seqioClose(seqioFile* sf)
   seqioFree(sf);
 }
 
+void
+seqioReset(seqioFile *sf)
+{
+  if (sf == NULL) {
+    return;
+  }
+  resetFilePointer(sf);
+  clearBuffer(sf);
+  if (sf->record != NULL) {
+    seqioFree(sf->record);
+    sf->record = NULL;
+  }
+  sf->pravite.state = READ_STATUS_NONE;
+  sf->pravite.isEOF = false;
+}
+
 seqioRecordType
 seqioGuessType(seqioFile* sf)
 {
