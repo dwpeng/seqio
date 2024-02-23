@@ -171,9 +171,23 @@ resetFilePointer(seqioFile* sf)
   sf->buffer.offset = 0;
 }
 
+static inline void
+checkFileExist(const char* filename)
+{
+  FILE* fp = fopen(filename, "r");
+  if (fp == NULL) {
+    fprintf(stderr, "File %s does not exist.\n", filename);
+    exit(1);
+  }
+  fclose(fp);
+}
+
 seqioFile*
 seqioOpen(seqioOpenOptions* options)
 {
+  if (options->mode == seqOpenModeRead || options->mode == seqOpenModeAppend) {
+    checkFileExist(options->filename);
+  }
   seqioFile* sf = (seqioFile*)seqioMalloc(sizeof(seqioFile));
   if (sf == NULL) {
     return NULL;
