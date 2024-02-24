@@ -9,3 +9,4 @@ main
 test-seqio
 test-kseq
 *.so
+test-seqio-stdin
