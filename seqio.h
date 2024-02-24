@@ -58,7 +58,6 @@ typedef struct {
 typedef enum {
   seqOpenModeRead,
   seqOpenModeWrite,
-  seqOpenModeAppend
 } seqOpenMode;
 
 typedef struct {
@@ -93,6 +92,8 @@ typedef struct {
     seqioRecordType type;
     bool isEOF;
     int state;
+    bool fromStdin;
+    bool toStdout;
   } pravite;
 } seqioFile;
 

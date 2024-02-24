@@ -1,16 +1,15 @@
 #include "seqio.h"
+#include <stdio.h>
 
 static char* openModeStr[] = {
   [seqOpenModeRead] = "r",
   [seqOpenModeWrite] = "w",
-  [seqOpenModeAppend] = "a",
 };
 
 #ifdef enable_gzip
 static char* openModeStrGzip[] = {
   [seqOpenModeRead] = "rb",
   [seqOpenModeWrite] = "wb",
-  [seqOpenModeAppend] = "ab",
 };
 #endif
 
@@ -144,186 +143,6 @@ writeDataFromBuffer(seqioFile* sf, char* data, size_t length)
   }
 }
 
-typedef enum {
-  READ_STATUS_NONE,
-  READ_STATUS_NAME,
-  READ_STATUS_COMMENT,
-  READ_STATUS_SEQUENCE,
-  READ_STATUS_QUALITY,
-  READ_STATUS_ADD,
-} readStatus;
-
-static inline void
-resetFilePointer(seqioFile* sf)
-{
-#ifdef enable_gzip
-  if (sf->options->isGzipped) {
-    gzseek(sf->file, 0, SEEK_SET);
-  } else {
-    fseek(sf->file, 0, SEEK_SET);
-  }
-#else
-  fseek(sf->file, 0, SEEK_SET);
-#endif
-  sf->pravite.isEOF = false;
-  sf->pravite.state = READ_STATUS_NONE;
-  sf->buffer.left = 0;
-  sf->buffer.offset = 0;
-}
-
-static inline void
-checkFileExist(const char* filename)
-{
-  FILE* fp = fopen(filename, "r");
-  if (fp == NULL) {
-    fprintf(stderr, "File %s does not exist.\n", filename);
-    exit(1);
-  }
-  fclose(fp);
-}
-
-seqioFile*
-seqioOpen(seqioOpenOptions* options)
-{
-  if (options->mode == seqOpenModeRead || options->mode == seqOpenModeAppend) {
-    checkFileExist(options->filename);
-  }
-  seqioFile* sf = (seqioFile*)seqioMalloc(sizeof(seqioFile));
-  if (sf == NULL) {
-    return NULL;
-  }
-  sf->options = options;
-#ifdef enable_gzip
-  if (options->mode == seqOpenModeRead) {
-    FILE* fp = fopen(options->filename, "rb");
-    if (fp == NULL) {
-      seqioFree(sf);
-      return NULL;
-    }
-    unsigned char magic[2] = { 0 };
-    fread(magic, 1, 2, fp);
-    fclose(fp);
-    if (magic[0] == 0x1f && magic[1] == 0x8b) {
-      options->isGzipped = true;
-    } else {
-      options->isGzipped = false;
-    }
-  }
-  if (options->isGzipped) {
-    sf->file = gzopen(options->filename, getOpenModeStr(options));
-    if (sf->file == NULL) {
-      fclose(sf->file);
-      seqioFree(sf);
-      return NULL;
-    }
-  } else {
-    sf->file = fopen(options->filename, getOpenModeStr(options));
-  }
-#else
-  sf->file = fopen(options->filename, getOpenModeStr(options));
-  if (sf->file == NULL) {
-    fclose(sf->file);
-    seqioFree(sf);
-    return NULL;
-  }
-#endif
-  sf->buffer.data = (char*)seqioMalloc(seqioDefaultBufferSize);
-  if (sf->buffer.data == NULL) {
-    fclose(sf->file);
-    seqioFree(sf);
-    return NULL;
-  }
-  sf->buffer.capacity = seqioDefaultBufferSize;
-  sf->buffer.offset = 0;
-  sf->buffer.left = 0;
-  sf->pravite.type = seqioRecordTypeUnknown;
-  sf->pravite.state = READ_STATUS_NONE;
-  sf->record = NULL;
-  sf->pravite.isEOF = false;
-  if (options->mode == seqOpenModeRead || options->mode == seqOpenModeAppend) {
-    seqioGuessType(sf);
-  }
-  return sf;
-}
-
-void
-seqioClose(seqioFile* sf)
-{
-  if (sf == NULL) {
-    return;
-  }
-  if (sf->file != NULL) {
-#ifdef enable_gzip
-    if (sf->options->isGzipped) {
-      gzclose(sf->file);
-    } else {
-      fclose(sf->file);
-    }
-#else
-    fclose(sf->file);
-#endif
-  }
-  if (sf->buffer.data != NULL) {
-    seqioFree(sf->buffer.data);
-  }
-  if (sf->record != NULL) {
-    seqioFree(sf->record);
-  }
-  seqioFree(sf);
-}
-
-void
-seqioReset(seqioFile *sf)
-{
-  if (sf == NULL) {
-    return;
-  }
-  resetFilePointer(sf);
-  clearBuffer(sf);
-  if (sf->record != NULL) {
-    seqioFree(sf->record);
-    sf->record = NULL;
-  }
-  sf->pravite.state = READ_STATUS_NONE;
-  sf->pravite.isEOF = false;
-}
-
-seqioRecordType
-seqioGuessType(seqioFile* sf)
-{
-  if (sf->pravite.type != seqioRecordTypeUnknown) {
-    return sf->pravite.type;
-  }
-  if (sf->options->mode != seqOpenModeRead) {
-    return seqioRecordTypeUnknown;
-  }
-  seqioRecordType type = seqioRecordTypeUnknown;
-  int flag = 0;
-  while (!sf->pravite.isEOF) {
-    if (flag == 1) {
-      break;
-    }
-    size_t readSize = readDataToBuffer(sf);
-    if (readSize == 0) {
-      return seqioRecordTypeUnknown;
-    }
-    for (size_t i = 0; i < readSize; i++) {
-      if (sf->buffer.data[i] == '>') {
-        type = seqioRecordTypeFasta;
-        flag = 1;
-        break;
-      } else if (sf->buffer.data[i] == '@') {
-        type = seqioRecordTypeFastq;
-        flag = 1;
-        break;
-      }
-    }
-  }
-  resetFilePointer(sf);
-  sf->pravite.type = type;
-  return type;
-}
-
 static inline seqioString*
 seqioStringNew(size_t capacity)
 {
@@ -398,6 +217,250 @@ seqioStringAppendChar(seqioString* string, char c)
   }
   string->data[string->length] = c;
   string->length += 1;
+}
+
+typedef enum {
+  READ_STATUS_NONE,
+  READ_STATUS_NAME,
+  READ_STATUS_COMMENT,
+  READ_STATUS_SEQUENCE,
+  READ_STATUS_QUALITY,
+  READ_STATUS_ADD,
+} readStatus;
+
+static inline void
+resetFilePointer(seqioFile* sf)
+{
+#ifdef enable_gzip
+  if (sf->options->isGzipped) {
+    gzseek(sf->file, 0, SEEK_SET);
+  } else {
+    fseek(sf->file, 0, SEEK_SET);
+  }
+#else
+  fseek(sf->file, 0, SEEK_SET);
+#endif
+  sf->pravite.isEOF = false;
+  sf->pravite.state = READ_STATUS_NONE;
+  sf->buffer.left = 0;
+  sf->buffer.offset = 0;
+}
+
+static inline void
+checkFileExist(const char* filename)
+{
+  FILE* fp = fopen(filename, "r");
+  if (fp == NULL) {
+    fprintf(stderr, "File %s does not exist.\n", filename);
+    exit(1);
+  }
+  fclose(fp);
+}
+
+static inline seqioFile*
+handleStdin(seqioFile* sf)
+{
+  sf->pravite.isEOF = false;
+  sf->buffer.data = (char*)seqioMalloc(seqioDefaultBufferSize);
+  if (sf->buffer.data == NULL) {
+    seqioFree(sf);
+    return NULL;
+  }
+  sf->buffer.capacity = seqioDefaultBufferSize;
+  sf->buffer.offset = 0;
+  sf->buffer.left = seqioDefaultBufferSize;
+  sf->pravite.type = seqioRecordTypeUnknown;
+  sf->pravite.state = READ_STATUS_NONE;
+  sf->record = NULL;
+  size_t readSize = 0;
+  size_t buffSize = 0;
+  while (!feof(stdin)) {
+    if (!sf->buffer.left) {
+      sf->buffer.data = (char*)seqioRealloc(
+          sf->buffer.data, sf->buffer.capacity + seqioDefaultBufferSize);
+      if (sf->buffer.data == NULL) {
+        seqioFree(sf);
+        return NULL;
+      }
+      sf->buffer.capacity += seqioDefaultBufferSize;
+    }
+    readSize =
+        fread(sf->buffer.data + buffSize, 1, seqioDefaultBufferSize, stdin);
+    buffSize += readSize;
+    sf->buffer.left = sf->buffer.capacity - buffSize;
+  }
+  sf->pravite.isEOF = true;
+  sf->buffer.left = buffSize;
+  for(size_t i = 0; i < buffSize; i++) {
+    if (sf->buffer.data[i] == '>') {
+      sf->pravite.type = seqioRecordTypeFasta;
+      break;
+    } else if (sf->buffer.data[i] == '@') {
+      sf->pravite.type = seqioRecordTypeFastq;
+      break;
+    }
+  }
+  return sf;
+}
+
+seqioFile*
+seqioOpen(seqioOpenOptions* options)
+{
+  if (options->filename && options->mode == seqOpenModeRead) {
+    checkFileExist(options->filename);
+  }
+  int checkFileType = true;
+  if (!options->filename) {
+    options->isGzipped = false;
+    checkFileType = false;
+  }
+  seqioFile* sf = (seqioFile*)seqioMalloc(sizeof(seqioFile));
+  sf->file = NULL;
+  if (sf == NULL) {
+    return NULL;
+  }
+  sf->options = options;
+  if (!options->filename) {
+    if (options->mode == seqOpenModeWrite) {
+      sf->pravite.toStdout = true;
+      sf->file = stdout;
+    } else {
+      sf->pravite.fromStdin = true;
+      sf->file = stdin;
+      return handleStdin(sf);
+    }
+  }
+#ifdef enable_gzip
+  if (checkFileType && options->mode == seqOpenModeRead) {
+    FILE* fp = fopen(options->filename, "rb");
+    if (fp == NULL) {
+      seqioFree(sf);
+      return NULL;
+    }
+    unsigned char magic[2] = { 0 };
+    fread(magic, 1, 2, fp);
+    fclose(fp);
+    if (magic[0] == 0x1f && magic[1] == 0x8b) {
+      options->isGzipped = true;
+    } else {
+      options->isGzipped = false;
+    }
+  }
+  if (options->isGzipped) {
+    sf->file = gzopen(options->filename, getOpenModeStr(options));
+    if (sf->file == NULL) {
+      fclose(sf->file);
+      seqioFree(sf);
+      return NULL;
+    }
+  } else {
+    if (!sf->file) {
+      sf->file = fopen(options->filename, getOpenModeStr(options));
+    }
+  }
+#else
+  sf->file = fopen(options->filename, getOpenModeStr(options));
+  if (sf->file == NULL) {
+    fclose(sf->file);
+    seqioFree(sf);
+    return NULL;
+  }
+#endif
+  sf->buffer.data = (char*)seqioMalloc(seqioDefaultBufferSize);
+  if (sf->buffer.data == NULL) {
+    fclose(sf->file);
+    seqioFree(sf);
+    return NULL;
+  }
+  sf->buffer.capacity = seqioDefaultBufferSize;
+  sf->buffer.offset = 0;
+  sf->buffer.left = 0;
+  sf->pravite.type = seqioRecordTypeUnknown;
+  sf->pravite.state = READ_STATUS_NONE;
+  sf->record = NULL;
+  sf->pravite.isEOF = false;
+  if (options->mode == seqOpenModeRead) {
+    seqioGuessType(sf);
+  }
+  return sf;
+}
+
+void
+seqioClose(seqioFile* sf)
+{
+  if (sf == NULL) {
+    return;
+  }
+  if (sf->file != NULL) {
+#ifdef enable_gzip
+    if (sf->options->isGzipped) {
+      gzclose(sf->file);
+    } else {
+      fclose(sf->file);
+    }
+#else
+    fclose(sf->file);
+#endif
+  }
+  if (sf->buffer.data != NULL) {
+    seqioFree(sf->buffer.data);
+  }
+  if (sf->record != NULL) {
+    seqioFree(sf->record);
+  }
+  seqioFree(sf);
+}
+
+void
+seqioReset(seqioFile* sf)
+{
+  if (sf == NULL) {
+    return;
+  }
+  resetFilePointer(sf);
+  clearBuffer(sf);
+  if (sf->record != NULL) {
+    seqioFree(sf->record);
+    sf->record = NULL;
+  }
+  sf->pravite.state = READ_STATUS_NONE;
+  sf->pravite.isEOF = false;
+}
+
+seqioRecordType
+seqioGuessType(seqioFile* sf)
+{
+  if (sf->pravite.type != seqioRecordTypeUnknown) {
+    return sf->pravite.type;
+  }
+  if (sf->options->mode != seqOpenModeRead) {
+    return seqioRecordTypeUnknown;
+  }
+  seqioRecordType type = seqioRecordTypeUnknown;
+  int flag = 0;
+  while (!sf->pravite.isEOF) {
+    if (flag == 1) {
+      break;
+    }
+    size_t readSize = readDataToBuffer(sf);
+    if (readSize == 0) {
+      return seqioRecordTypeUnknown;
+    }
+    for (size_t i = 0; i < readSize; i++) {
+      if (sf->buffer.data[i] == '>') {
+        type = seqioRecordTypeFasta;
+        flag = 1;
+        break;
+      } else if (sf->buffer.data[i] == '@') {
+        type = seqioRecordTypeFastq;
+        flag = 1;
+        break;
+      }
+    }
+  }
+  resetFilePointer(sf);
+  sf->pravite.type = type;
+  return type;
 }
 
 void
