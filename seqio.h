@@ -86,6 +86,7 @@ typedef struct {
     size_t offset;
     size_t left;
     size_t capacity;
+    size_t buffSize;
     char* data;
   } buffer;
   struct {

@@ -291,6 +291,7 @@ handleStdin(seqioFile* sf)
   }
   sf->pravite.isEOF = true;
   sf->buffer.left = buffSize;
+  sf->buffer.buffSize = buffSize;
   for(size_t i = 0; i < buffSize; i++) {
     if (sf->buffer.data[i] == '>') {
       sf->pravite.type = seqioRecordTypeFasta;
@@ -415,6 +416,15 @@ void
 seqioReset(seqioFile* sf)
 {
   if (sf == NULL) {
+    return;
+  }
+  if(sf->options->mode == seqOpenModeWrite) {
+    return;
+  }
+  if(sf->pravite.fromStdin) {
+    sf->buffer.offset = 0;
+    sf->buffer.left = sf->buffer.buffSize;
+    sf->pravite.isEOF = true;
     return;
   }
   resetFilePointer(sf);
