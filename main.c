@@ -40,24 +40,20 @@ main()
 
   seqioRecord* Record1 = NULL;
   seqioRecord* Record2 = NULL;
-  seqioFastaRecord* fastaRecord = NULL;
-  seqioFastqRecord* fastqRecord = NULL;
   while ((Record1 = seqioRead(sf1, Record1)) != NULL) {
-    fastaRecord = (seqioFastaRecord*)Record1;
-    printf(">%s %s\n", fastaRecord->name->data, fastaRecord->comment->data);
-    printf("%s\n", fastaRecord->sequence->data);
-    seqioWriteFasta(sf2, fastaRecord, &writeOptions2);
+    printf(">%s %s\n", Record1->name->data, Record1->comment->data);
+    printf("%s\n", Record1->sequence->data);
+    seqioWriteFasta(sf2, Record1, &writeOptions2);
   }
   seqioClose(sf1);
   seqioClose(sf2);
 
   while ((Record2 = seqioRead(sf3, Record2)) != NULL) {
-    fastqRecord = (seqioFastqRecord*)Record2;
-    printf("@%s %s\n", fastqRecord->name->data, fastqRecord->comment->data);
-    printf("%s\n", fastqRecord->sequence->data);
+    printf("@%s %s\n", Record2->name->data, Record2->comment->data);
+    printf("%s\n", Record2->sequence->data);
     printf("+\n");
-    printf("%s\n", fastqRecord->quality->data);
-    seqioWriteFastq(sf4, fastqRecord, &writeOptions4);
+    printf("%s\n", Record2->quality->data);
+    seqioWriteFastq(sf4, Record2, &writeOptions4);
   }
 
   seqioClose(sf3);

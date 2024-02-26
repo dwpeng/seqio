@@ -35,10 +35,6 @@ typedef enum {
 } seqioRecordType;
 
 typedef struct {
-  seqioRecordType type;
-} seqioRecord;
-
-typedef struct {
   size_t length;
   size_t capacity;
   char* data;
@@ -49,15 +45,8 @@ typedef struct {
   seqioString* name;
   seqioString* comment;
   seqioString* sequence;
-} seqioFastaRecord;
-
-typedef struct {
-  seqioRecordType type;
-  seqioString* name;
-  seqioString* comment;
-  seqioString* sequence;
   seqioString* quality;
-} seqioFastqRecord;
+} seqioRecord;
 
 typedef enum {
   seqOpenModeRead,
@@ -113,14 +102,14 @@ seqioFile* seqioOpen(seqioOpenOptions* options);
 void seqioClose(seqioFile* sf);
 void seqioReset(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);
-seqioFastaRecord* seqioReadFasta(seqioFile* sf, seqioFastaRecord* record);
-seqioFastqRecord* seqioReadFastq(seqioFile* sf, seqioFastqRecord* record);
+seqioRecord* seqioReadFasta(seqioFile* sf, seqioRecord* record);
+seqioRecord* seqioReadFastq(seqioFile* sf, seqioRecord* record);
 seqioRecord* seqioRead(seqioFile* sf, seqioRecord* record);
 void seqioWriteFasta(seqioFile* sf,
-                     seqioFastaRecord* record,
+                     seqioRecord* record,
                      seqioWriteOptions* options);
 void seqioWriteFastq(seqioFile* sf,
-                     seqioFastqRecord* record,
+                     seqioRecord* record,
                      seqioWriteOptions* options);
 #ifdef __cplusplus
 }

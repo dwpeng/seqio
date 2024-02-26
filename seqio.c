@@ -388,7 +388,7 @@ seqioOpen(seqioOpenOptions* options)
   return sf;
 }
 
-void seqioFreeRecord(void* record);
+void seqioFreeRecord(seqioRecord* record);
 
 void
 seqioClose(seqioFile* sf)
@@ -478,22 +478,22 @@ seqioGuessType(seqioFile* sf)
 }
 
 void
-seqioFreeRecord(void* record)
+seqioFreeRecord(seqioRecord* record)
 {
   if (record == NULL) {
     return;
   }
-  if (((seqioRecord*)record)->type == seqioRecordTypeFasta) {
-    seqioFastaRecord* fastaRecord = (seqioFastaRecord*)record;
-    seqioStringFree(fastaRecord->name);
-    seqioStringFree(fastaRecord->comment);
-    seqioStringFree(fastaRecord->sequence);
-  } else if (((seqioRecord*)record)->type == seqioRecordTypeFastq) {
-    seqioFastqRecord* fastqRecord = (seqioFastqRecord*)record;
-    seqioStringFree(fastqRecord->name);
-    seqioStringFree(fastqRecord->comment);
-    seqioStringFree(fastqRecord->sequence);
-    seqioStringFree(fastqRecord->quality);
+  if(record->comment){
+    seqioStringFree(record->comment);
+  }
+  if(record->name){
+    seqioStringFree(record->name);
+  }
+  if(record->sequence){
+    seqioStringFree(record->sequence);
+  }
+  if(record->quality){
+    seqioStringFree(record->quality);
   }
   seqioFree(record);
 }
@@ -556,8 +556,8 @@ readUntil(seqioFile* sf, seqioString* s, char untilChar, readStatus nextStatus)
   }
 }
 
-seqioFastaRecord*
-seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
+seqioRecord*
+seqioReadFasta(seqioFile* sf, seqioRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
     seqioFreeRecord(record);
@@ -566,7 +566,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
   }
   ensureFastaRecord(sf, "Cannot read fasta record from a fastq file.");
   if (record == NULL) {
-    record = (seqioFastaRecord*)seqioMalloc(sizeof(seqioFastaRecord));
+    record = seqioMalloc(sizeof(seqioRecord));
     if (record == NULL) {
       return NULL;
     }
@@ -574,6 +574,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     record->name = seqioStringNew(256);
     record->comment = seqioStringNew(256);
     record->sequence = seqioStringNew(256);
+    record->quality = NULL;
   } else {
     record->type = seqioRecordTypeFasta;
     seqioStringClear(record->name);
@@ -643,8 +644,8 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
   return record;
 }
 
-seqioFastqRecord*
-seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
+seqioRecord*
+seqioReadFastq(seqioFile* sf, seqioRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
     seqioFreeRecord(record);
@@ -653,7 +654,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
   }
   ensureFastqRecord(sf, "Cannot read fastq record from a fasta file.");
   if (record == NULL) {
-    record = (seqioFastqRecord*)seqioMalloc(sizeof(seqioFastqRecord));
+    record = seqioMalloc(sizeof(seqioRecord));
     if (record == NULL) {
       return NULL;
     }
@@ -756,9 +757,9 @@ seqioRead(seqioFile* sf, seqioRecord* record)
     return NULL;
   }
   if (sf->pravite.type == seqioRecordTypeFasta) {
-    return (seqioRecord*)seqioReadFasta(sf, (seqioFastaRecord*)record);
+    return seqioReadFasta(sf, record);
   } else if (sf->pravite.type == seqioRecordTypeFastq) {
-    return (seqioRecord*)seqioReadFastq(sf, (seqioFastqRecord*)record);
+    return seqioReadFastq(sf, record);
   } else {
     return NULL;
   }
@@ -784,7 +785,7 @@ seqioStringLower(seqioString* string)
 
 void
 seqioWriteFasta(seqioFile* sf,
-                seqioFastaRecord* record,
+                seqioRecord* record,
                 seqioWriteOptions* options)
 {
   ensureWriteable(sf);
@@ -833,7 +834,7 @@ seqioWriteFasta(seqioFile* sf,
 
 void
 seqioWriteFastq(seqioFile* sf,
-                seqioFastqRecord* record,
+                seqioRecord* record,
                 seqioWriteOptions* options)
 {
   ensureWriteable(sf);

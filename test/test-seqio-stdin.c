@@ -14,15 +14,9 @@ main(int argc, char* argv[])
   seqioFile* sf = seqioOpen(&openOptions);
   seqioRecord* record = NULL;
   while ((record = seqioRead(sf, record)) != NULL) {
-    if (record->type == seqioRecordTypeFasta) {
-      seqioFastaRecord* fastaRecord = (seqioFastaRecord*)record;
-      printf("name: %s: length: %lu\n", fastaRecord->name->data,
-             fastaRecord->sequence->length);
-    } else if (record->type == seqioRecordTypeFastq) {
-      seqioFastqRecord* fastqRecord = (seqioFastqRecord*)record;
-      printf("name: %s: length: %lu\n", fastqRecord->name->data,
-             fastqRecord->sequence->length);
-    }
+      printf("name: %s: length: %lu\n", record->name->data,
+             record->sequence->length);
+    
   }
   seqioClose(sf);
 }
