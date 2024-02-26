@@ -24,6 +24,10 @@
 #define seqioRealloc(ptr, size) realloc(ptr, size)
 #define seqioFree(ptr) free(ptr)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
   seqioRecordTypeFasta,
   seqioRecordTypeFastq,
@@ -119,4 +123,7 @@ void seqioWriteFasta(seqioFile* sf,
 void seqioWriteFastq(seqioFile* sf,
                      seqioFastqRecord* record,
                      seqioWriteOptions* options);
+#ifdef __cplusplus
+}
+#endif
 #endif // __seqio_h__

@@ -10,3 +10,4 @@ test-seqio
 test-kseq
 *.so
 test-seqio-stdin
+test-seqio-cpp-stdin
