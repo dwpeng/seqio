@@ -386,11 +386,16 @@ seqioOpen(seqioOpenOptions* options)
   return sf;
 }
 
+void seqioFreeRecord(void* record);
+
 void
 seqioClose(seqioFile* sf)
 {
   if (sf == NULL) {
     return;
+  }
+  if(sf->record){
+    seqioFreeRecord(sf->record);
   }
   if (sf->file != NULL) {
 #ifdef enable_gzip
@@ -557,6 +562,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
     seqioFreeRecord(record);
+    sf->record = NULL;
     return NULL;
   }
   ensureFastaRecord(sf, "Cannot read fasta record from a fastq file.");
@@ -624,6 +630,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
         backwardBufferOne(sf);
         readUntil(sf, record->sequence, '>', READ_STATUS_NAME);
         record->sequence->data[record->sequence->length] = '\0';
+        sf->record = (seqioRecord*)record;
         return record;
       }
       default: {
@@ -632,6 +639,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
       }
     }
   }
+  sf->record = (seqioRecord*)record;
   return record;
 }
 
@@ -640,6 +648,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
     seqioFreeRecord(record);
+    sf->record = NULL;
     return NULL;
   }
   ensureFastqRecord(sf, "Cannot read fastq record from a fasta file.");
@@ -724,6 +733,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
         backwardBufferOne(sf);
         readUntil(sf, record->quality, '@', READ_STATUS_NAME);
         record->quality->data[record->quality->length] = '\0';
+        sf->record = (seqioRecord*)record;
         return record;
       }
       default: {
@@ -732,6 +742,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
       }
     }
   }
+  sf->record = (seqioRecord*)record;
   return record;
 }
 

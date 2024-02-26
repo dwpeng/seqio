@@ -116,7 +116,6 @@ seqioRecordType seqioGuessType(seqioFile* sf);
 seqioFastaRecord* seqioReadFasta(seqioFile* sf, seqioFastaRecord* record);
 seqioFastqRecord* seqioReadFastq(seqioFile* sf, seqioFastqRecord* record);
 seqioRecord* seqioRead(seqioFile* sf, seqioRecord* record);
-void seqioFreeRecord(void* record);
 void seqioWriteFasta(seqioFile* sf,
                      seqioFastaRecord* record,
                      seqioWriteOptions* options);
