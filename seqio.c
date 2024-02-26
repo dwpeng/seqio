@@ -639,6 +639,7 @@ seqioReadFasta(seqioFile* sf, seqioFastaRecord* record)
     }
   }
   sf->record = (seqioRecord*)record;
+  record->sequence->data[record->sequence->length] = '\0';
   return record;
 }
 
@@ -742,6 +743,7 @@ seqioReadFastq(seqioFile* sf, seqioFastqRecord* record)
     }
   }
   sf->record = (seqioRecord*)record;
+  record->quality->data[record->quality->length] = '\0';
   return record;
 }
 
