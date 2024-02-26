@@ -83,8 +83,6 @@ typedef struct {
 } seqioWriteOptions;
 
 typedef struct {
-  seqioOpenOptions* options;
-  void* file;
   seqioRecord* record;
   struct {
     size_t offset;
@@ -99,6 +97,8 @@ typedef struct {
     int state;
     bool fromStdin;
     bool toStdout;
+    seqioOpenOptions* options;
+    void* file;
   } pravite;
 } seqioFile;
 
