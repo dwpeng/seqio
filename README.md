@@ -77,22 +77,21 @@ valgrind --leak-check=full --leak-check=full --show-leak-kinds=all --log-file=./
 ```
 
 ```log
-==501278== Memcheck, a memory error detector
-==501278== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
-==501278== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
-==501278== Command: ./main
-==501278== Parent PID: 41723
-==501278== 
-==501278== 
-==501278== HEAP SUMMARY:
-==501278==     in use at exit: 0 bytes in 0 blocks
-==501278==   total heap usage: 43 allocs, 43 frees, 150,896 bytes allocated
-==501278== 
-==501278== All heap blocks were freed -- no leaks are possible
-==501278== 
-==501278== For lists of detected and suppressed errors, rerun with: -s
-==501278== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
-
+==1139682== Memcheck, a memory error detector
+==1139682== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==1139682== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==1139682== Command: ./main
+==1139682== Parent PID: 1107213
+==1139682== 
+==1139682== 
+==1139682== HEAP SUMMARY:
+==1139682==     in use at exit: 0 bytes in 0 blocks
+==1139682==   total heap usage: 45 allocs, 45 frees, 151,872 bytes allocated
+==1139682== 
+==1139682== All heap blocks were freed -- no leaks are possible
+==1139682== 
+==1139682== For lists of detected and suppressed errors, rerun with: -s
+==1139682== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 ```
 
 ## test with kseq
