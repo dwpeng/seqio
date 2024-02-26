@@ -122,7 +122,7 @@ freshDataToFile(seqioFile* sf)
 }
 
 static inline void
-writeDataFromBuffer(seqioFile* sf, char* data, size_t length)
+writeDataToBuffer(seqioFile* sf, char* data, size_t length)
 {
   ensureWriteable(sf);
   size_t needWriteSize = sf->buffer.left + length;
@@ -795,14 +795,14 @@ seqioWriteFasta(seqioFile* sf,
     sf->pravite.type = seqioRecordTypeFasta;
   }
   // write name
-  writeDataFromBuffer(sf, ">", 1);
-  writeDataFromBuffer(sf, record->name->data, record->name->length);
+  writeDataToBuffer(sf, ">", 1);
+  writeDataToBuffer(sf, record->name->data, record->name->length);
   // write comment
   if (options->includeComment && record->comment->length) {
-    writeDataFromBuffer(sf, " ", 1);
-    writeDataFromBuffer(sf, record->comment->data, record->comment->length);
+    writeDataToBuffer(sf, " ", 1);
+    writeDataToBuffer(sf, record->comment->data, record->comment->length);
   }
-  writeDataFromBuffer(sf, "\n", 1);
+  writeDataToBuffer(sf, "\n", 1);
   // write sequence
   if (options->baseCase == seqioBaseCaseLower) {
     seqioStringLower(record->sequence);
@@ -810,21 +810,21 @@ seqioWriteFasta(seqioFile* sf,
     seqioStringUpper(record->sequence);
   }
   if (options->lineWidth == 0) {
-    writeDataFromBuffer(sf, record->sequence->data, record->sequence->length);
+    writeDataToBuffer(sf, record->sequence->data, record->sequence->length);
   } else {
     size_t sequenceLength = record->sequence->length;
     size_t sequenceOffset = 0;
     while (sequenceLength) {
       if (sequenceLength >= options->lineWidth) {
-        writeDataFromBuffer(sf, record->sequence->data + sequenceOffset,
+        writeDataToBuffer(sf, record->sequence->data + sequenceOffset,
                             options->lineWidth);
-        writeDataFromBuffer(sf, "\n", 1);
+        writeDataToBuffer(sf, "\n", 1);
         sequenceOffset += options->lineWidth;
         sequenceLength -= options->lineWidth;
       } else {
-        writeDataFromBuffer(sf, record->sequence->data + sequenceOffset,
+        writeDataToBuffer(sf, record->sequence->data + sequenceOffset,
                             sequenceLength);
-        writeDataFromBuffer(sf, "\n", 1);
+        writeDataToBuffer(sf, "\n", 1);
         break;
       }
     }
@@ -844,24 +844,24 @@ seqioWriteFastq(seqioFile* sf,
     sf->pravite.type = seqioRecordTypeFastq;
   }
   // write name
-  writeDataFromBuffer(sf, "@", 1);
-  writeDataFromBuffer(sf, record->name->data, record->name->length);
+  writeDataToBuffer(sf, "@", 1);
+  writeDataToBuffer(sf, record->name->data, record->name->length);
   // write comment
   if (options->includeComment && record->comment->length) {
-    writeDataFromBuffer(sf, " ", 1);
-    writeDataFromBuffer(sf, record->comment->data, record->comment->length);
+    writeDataToBuffer(sf, " ", 1);
+    writeDataToBuffer(sf, record->comment->data, record->comment->length);
   }
-  writeDataFromBuffer(sf, "\n", 1);
+  writeDataToBuffer(sf, "\n", 1);
   // write sequence
   if (options->baseCase == seqioBaseCaseLower) {
     seqioStringLower(record->sequence);
   } else if (options->baseCase == seqioBaseCaseUpper) {
     seqioStringUpper(record->sequence);
   }
-  writeDataFromBuffer(sf, record->sequence->data, record->sequence->length);
+  writeDataToBuffer(sf, record->sequence->data, record->sequence->length);
   // write add
-  writeDataFromBuffer(sf, "\n+\n", 3);
+  writeDataToBuffer(sf, "\n+\n", 3);
   // write quality
-  writeDataFromBuffer(sf, record->quality->data, record->quality->length);
-  writeDataFromBuffer(sf, "\n", 1);
+  writeDataToBuffer(sf, record->quality->data, record->quality->length);
+  writeDataToBuffer(sf, "\n", 1);
 }
