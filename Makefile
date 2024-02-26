@@ -22,6 +22,6 @@ libseqio.so:
 	$(cc) -shared -fPIC -o libseqio.so seqio.o
 
 clean:
-	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so
+	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so test-seqio-*
 
 .PHONY:clean
