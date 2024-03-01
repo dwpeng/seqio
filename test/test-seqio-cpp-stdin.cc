@@ -4,9 +4,11 @@ namespace seqio {
 int
 read()
 {
-  seqioOpenOptions openOptions = { .filename = NULL,
-                                   .isGzipped = false,
-                                   .mode = seqOpenModeRead };
+  seqioOpenOptions openOptions = {
+    .filename = NULL,
+    .isGzipped = false,
+    .mode = seqOpenModeRead,
+  };
   seqioFile* sf = seqioOpen(&openOptions);
   seqioRecord* record = NULL;
   while ((record = seqioRead(sf, record)) != NULL) {
