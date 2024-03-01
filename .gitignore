@@ -5,10 +5,6 @@ test-kseq
 *.json
 *.fna
 *.o
-main
-test-seqio
-test-kseq
 *.so
-test-seqio-stdin
-test-seqio-cpp-stdin
+test-seqio-*
 test-cigar

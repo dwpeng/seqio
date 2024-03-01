@@ -8,10 +8,7 @@ export seqioObj := $(seqioSource:.c=.o)
 export cigarSource := $(ROOT_DIR)/cigar.c
 export cigarObj := $(cigarSource:.c=.o)
 
-all: main build-test libseqio.so
-
-main:main.o seqio.o
-	$(cc) $(CFLAGS) -o main $^ $(LIBS)
+all: build-test libseqio.so
 
 ^.o:^.c
 	$(cc) $(CFLAGS) $(LIBS) -c $<
@@ -24,6 +21,6 @@ libseqio.so:
 	$(cc) -shared -fPIC -o libseqio.so seqio.o
 
 clean:
-	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so test-seqio-* test-cigar
+	rm -f *.o test-seqio test-kseq libseqio.so test-seqio-* test-cigar
 
 .PHONY:clean
