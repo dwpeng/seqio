@@ -11,3 +11,4 @@ test-kseq
 *.so
 test-seqio-stdin
 test-seqio-cpp-stdin
+test-cigar

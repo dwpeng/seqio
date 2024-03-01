@@ -5,6 +5,8 @@ export INCLUDE := $(ROOT_DIR)
 export CFLAGS := -Wall -Wextra -Werror -O3 -I$(INCLUDE)
 export seqioSource := $(ROOT_DIR)/seqio.c 
 export seqioObj := $(seqioSource:.c=.o)
+export cigarSource := $(ROOT_DIR)/cigar.c
+export cigarObj := $(cigarSource:.c=.o)
 
 all: main build-test libseqio.so
 
@@ -22,6 +24,6 @@ libseqio.so:
 	$(cc) -shared -fPIC -o libseqio.so seqio.o
 
 clean:
-	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so test-seqio-*
+	rm -f main.o seqio.o main test-seqio test-kseq libseqio.so test-seqio-* test-cigar
 
 .PHONY:clean
