@@ -6,5 +6,5 @@ test-kseq
 *.fna
 *.o
 *.so
-test-seqio-*
+./test-seqio-*
 test-cigar
