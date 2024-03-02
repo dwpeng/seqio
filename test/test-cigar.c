@@ -24,7 +24,7 @@ main()
   free(s);
   seqioCigarFree(cigar);
   cigar_string_t* cigar2 = seqioCigarFromString("D1M3X1M2=2M2");
-  s = seqioCigarToString(cigar);
+  s = seqioCigarToString(cigar2);
   printf("%s\n", s);
   assert(strcmp(s, "D1M3X1M2=2M2") == 0);
   free(s);
@@ -38,5 +38,6 @@ main()
   printf("%s\n", alignment->alignment.aln);
   printf("%s\n", alignment->alignment.query);
   seqioCigarFreeAlignment(alignment);
+  seqioCigarFree(cigar);
   return 0;
 }

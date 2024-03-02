@@ -45,7 +45,7 @@ seqioCigarFree(cigar_string_t* cigar)
 void
 seqioCigarPush(cigar_string_t* cigar, char state)
 {
-  if (state == cigar->_mete_info.cigars[cigar->_mete_info.length - 1].state) {
+  if (cigar->_mete_info.length && state == cigar->_mete_info.cigars[cigar->_mete_info.length - 1].state) {
     cigar->_mete_info.cigars[cigar->_mete_info.length - 1].length++;
     return;
   }
@@ -107,10 +107,8 @@ seqioCigarToString(cigar_string_t* cigar)
     str[j] = CIGAR_STATE[(int)block->state];
     j++;
     int offset = snprintf(numberBuffer, 11, "%d", block->length);
-    for (int k = 0; k < offset; k++) {
-      str[j] = numberBuffer[k];
-      j++;
-    }
+    memcpy(str+j, numberBuffer, offset);
+    j += offset;
   }
   str[j] = '\0';
   return str;
