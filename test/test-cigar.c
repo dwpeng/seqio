@@ -1,5 +1,7 @@
 #include "cigar.h"
 #include <assert.h>
+#include <stdio.h>
+#include <string.h>
 
 int
 main()
@@ -27,5 +29,14 @@ main()
   assert(strcmp(s, "D1M3X1M2=2M2") == 0);
   free(s);
   seqioCigarFree(cigar2);
+  cigar = seqioCigarFromString("D1M3X1M2=2M2");
+  char* ref = "AGGGTAAAAAA";
+  char* query = "GGGCAAAAAA";
+  cigar_alignment_t* alignment = seqioCigarToAlignment(cigar, ref, query);
+  assert(strlen(alignment->alignment.aln) == 11);
+  printf("%s\n", alignment->alignment.ref);
+  printf("%s\n", alignment->alignment.aln);
+  printf("%s\n", alignment->alignment.query);
+  seqioCigarFreeAlignment(alignment);
   return 0;
 }

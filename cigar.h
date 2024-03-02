@@ -21,10 +21,7 @@ extern "C" {
 
 #define CIGAR_STATE "MIDNSHP=X"
 
-typedef struct cigar_block_t {
-  char state;
-  int length;
-} cigar_block_t;
+typedef struct cigar_block_t cigar_block_t;
 
 typedef struct {
   struct {
@@ -34,11 +31,24 @@ typedef struct {
   } _mete_info;
 } cigar_string_t;
 
+typedef struct{
+  const cigar_string_t* cigar;
+  const char* reference;
+  const char* query;
+  struct{
+    char* ref;
+    char* query;
+    char* aln;
+  }alignment;
+}cigar_alignment_t;
+
 cigar_string_t* seqioCigarInit();
 void seqioCigarFree(cigar_string_t* cigar);
 void seqioCigarPush(cigar_string_t* cigar, char state);
 char* seqioCigarToString(cigar_string_t* cigar);
 cigar_string_t* seqioCigarFromString(char* cigar_string);
+cigar_alignment_t* seqioCigarToAlignment(const cigar_string_t* cigar, const char* reference, const char* query);
+void seqioCigarFreeAlignment(cigar_alignment_t* alignment);
 #ifdef __cplusplus
 }
 #endif

@@ -2,9 +2,15 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static char CIGAR_STATE_CHAR[] = {
   'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X',
+};
+
+struct cigar_block_t {
+  char state;
+  int length;
 };
 
 cigar_string_t*
@@ -145,4 +151,170 @@ seqioCigarFromString(char* str)
     }
   }
   return cigar;
+}
+
+
+void
+seqioCigarFreeAlignment(cigar_alignment_t *alignment)
+{
+  free(alignment->alignment.query);
+  free(alignment->alignment.ref);
+  free(alignment->alignment.aln);
+  free(alignment);
+  return;
+}
+
+
+cigar_alignment_t*
+seqioCigarToAlignment(const cigar_string_t* cigar,
+                      const char* reference,
+                      const char* query)
+{
+  int refLen = strlen(reference);
+  int queryLen = strlen(query);
+  int alignmentLen = 0;
+  int cigarRefLen = 0;
+  int cigarQueryLen = 0;
+  for (int i = 0; i < cigar->_mete_info.length; i++) {
+    switch (cigar->_mete_info.cigars[i].state) {
+    case CIGAR_M: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarRefLen += cigar->_mete_info.cigars[i].length;
+      cigarQueryLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_I: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarQueryLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_D: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarRefLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_N: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarRefLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_S: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarQueryLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_EQ: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarRefLen += cigar->_mete_info.cigars[i].length;
+      cigarQueryLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    case CIGAR_X: {
+      alignmentLen += cigar->_mete_info.cigars[i].length;
+      cigarRefLen += cigar->_mete_info.cigars[i].length;
+      cigarQueryLen += cigar->_mete_info.cigars[i].length;
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+  if (cigarQueryLen != queryLen || cigarRefLen != refLen) {
+    fprintf(stderr, "CIGAR length does not match the sequence length\n");
+    fprintf(stderr, "Expected ref: %d, got: %d\n", cigarRefLen, refLen);
+    fprintf(stderr, "Expected query: %d, got: %d\n", cigarQueryLen, queryLen);
+    exit(EXIT_FAILURE);
+  }
+  cigar_alignment_t* alignment =
+      (cigar_alignment_t*)malloc(sizeof(cigar_alignment_t));
+  if (alignment == NULL) {
+    perror("malloc");
+    exit(EXIT_FAILURE);
+  }
+  alignment->cigar = cigar;
+  alignment->query = query;
+  alignment->reference = reference;
+  alignment->alignment.query =
+      (char*)malloc(sizeof(char) * (alignmentLen + 1));
+  alignment->alignment.ref = (char*)malloc(sizeof(char) * (alignmentLen + 1));
+  alignment->alignment.aln = (char*)malloc(sizeof(char) * (alignmentLen + 1));
+  if (alignment->alignment.query == NULL || alignment->alignment.ref == NULL
+      || alignment->alignment.aln == NULL) {
+    perror("malloc");
+    exit(EXIT_FAILURE);
+  }
+
+  int alnIndex = 0;
+  int refIndex = 0;
+  int queryIndex = 0;
+
+  for (int i = 0; i < cigar->_mete_info.length; i++) {
+    switch (cigar->_mete_info.cigars[i].state) {
+    case CIGAR_M:
+    case CIGAR_EQ:
+    case CIGAR_X: {
+      for (int j = 0; j < cigar->_mete_info.cigars[i].length; j++) {
+        alignment->alignment.query[alnIndex] = query[queryIndex];
+        alignment->alignment.ref[alnIndex] = reference[refIndex];
+        if (query[queryIndex] == reference[refIndex]) {
+          alignment->alignment.aln[alnIndex] = '|';
+        } else {
+          alignment->alignment.aln[alnIndex] = '*';
+        }
+        alnIndex++;
+        refIndex++;
+        queryIndex++;
+      }
+      break;
+    }
+    case CIGAR_I: {
+      for (int j = 0; j < cigar->_mete_info.cigars[i].length; j++) {
+        alignment->alignment.query[alnIndex] = query[queryIndex];
+        alignment->alignment.ref[alnIndex] = '-';
+        alignment->alignment.aln[alnIndex] = ' ';
+        alnIndex++;
+        queryIndex++;
+      }
+      break;
+    }
+    case CIGAR_D: {
+      for (int j = 0; j < cigar->_mete_info.cigars[i].length; j++) {
+        alignment->alignment.query[alnIndex] = '-';
+        alignment->alignment.ref[alnIndex] = reference[refIndex];
+        alignment->alignment.aln[alnIndex] = ' ';
+        alnIndex++;
+        refIndex++;
+      }
+      break;
+    }
+    case CIGAR_N: {
+      for (int j = 0; j < cigar->_mete_info.cigars[i].length; j++) {
+        alignment->alignment.query[alnIndex] = '-';
+        alignment->alignment.ref[alnIndex] = reference[refIndex];
+        alignment->alignment.aln[alnIndex] = ' ';
+        alnIndex++;
+        refIndex++;
+      }
+      break;
+    }
+    case CIGAR_S: {
+      for (int j = 0; j < cigar->_mete_info.cigars[i].length; j++) {
+        alignment->alignment.query[alnIndex] = query[queryIndex];
+        alignment->alignment.ref[alnIndex] = '-';
+        alignment->alignment.aln[alnIndex] = ' ';
+        alnIndex++;
+        queryIndex++;
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+    }
+  }
+  alignment->alignment.query[alnIndex] = '\0';
+  alignment->alignment.ref[alnIndex] = '\0';
+  alignment->alignment.aln[alnIndex] = '\0';
+  return alignment;
 }
