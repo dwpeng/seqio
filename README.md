@@ -71,6 +71,9 @@ main()
 
 ```
 
+## example
+more examples can be found in the test directory
+
 ## memory check
 ```bash
 valgrind --leak-check=full --leak-check=full --show-leak-kinds=all --log-file=./1.log --track-origins=yes ./main
