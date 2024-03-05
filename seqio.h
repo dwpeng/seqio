@@ -99,6 +99,10 @@ typedef struct {
   }
 
 seqioFile* seqioOpen(seqioOpenOptions* options);
+extern seqioOpenOptions __defaultStdinOptions;
+extern seqioOpenOptions __defaultStdoutOptions;
+#define seqioStdinOpen() seqioOpen(&__defaultStdinOptions)
+#define seqioStdoutOpen() seqioOpen(&__defaultStdoutOptions)
 void seqioClose(seqioFile* sf);
 void seqioReset(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);

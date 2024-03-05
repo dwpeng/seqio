@@ -1,6 +1,18 @@
 #include "seqio.h"
 #include <stdio.h>
 
+seqioOpenOptions __defaultStdinOptions = {
+  .filename = NULL,
+  .mode = seqOpenModeRead,
+  .isGzipped = false,
+};
+
+seqioOpenOptions __defaultStdoutOptions = {
+  .filename = NULL,
+  .mode = seqOpenModeWrite,
+  .isGzipped = false,
+};
+
 static char* openModeStr[] = {
   [seqOpenModeRead] = "r",
   [seqOpenModeWrite] = "w",
@@ -294,7 +306,7 @@ handleStdin(seqioFile* sf)
   sf->pravite.isEOF = true;
   sf->buffer.left = buffSize;
   sf->buffer.buffSize = buffSize;
-  for(size_t i = 0; i < buffSize; i++) {
+  for (size_t i = 0; i < buffSize; i++) {
     if (sf->buffer.data[i] == '>') {
       sf->pravite.type = seqioRecordTypeFasta;
       break;
@@ -425,7 +437,7 @@ seqioReset(seqioFile* sf)
   if (sf->pravite.options->mode == seqOpenModeWrite) {
     return;
   }
-  if(sf->pravite.fromStdin) {
+  if (sf->pravite.fromStdin) {
     sf->buffer.offset = 0;
     sf->buffer.left = sf->buffer.buffSize;
     sf->pravite.isEOF = true;
@@ -483,16 +495,16 @@ seqioFreeRecord(seqioRecord* record)
   if (record == NULL) {
     return;
   }
-  if(record->comment){
+  if (record->comment) {
     seqioStringFree(record->comment);
   }
-  if(record->name){
+  if (record->name) {
     seqioStringFree(record->name);
   }
-  if(record->sequence){
+  if (record->sequence) {
     seqioStringFree(record->sequence);
   }
-  if(record->quality){
+  if (record->quality) {
     seqioStringFree(record->quality);
   }
   seqioFree(record);
@@ -784,9 +796,7 @@ seqioStringLower(seqioString* string)
 }
 
 void
-seqioWriteFasta(seqioFile* sf,
-                seqioRecord* record,
-                seqioWriteOptions* options)
+seqioWriteFasta(seqioFile* sf, seqioRecord* record, seqioWriteOptions* options)
 {
   ensureWriteable(sf);
   if (!options) {
@@ -818,13 +828,13 @@ seqioWriteFasta(seqioFile* sf,
     while (sequenceLength) {
       if (sequenceLength >= options->lineWidth) {
         writeDataToBuffer(sf, record->sequence->data + sequenceOffset,
-                            options->lineWidth);
+                          options->lineWidth);
         writeDataToBuffer(sf, "\n", 1);
         sequenceOffset += options->lineWidth;
         sequenceLength -= options->lineWidth;
       } else {
         writeDataToBuffer(sf, record->sequence->data + sequenceOffset,
-                            sequenceLength);
+                          sequenceLength);
         writeDataToBuffer(sf, "\n", 1);
         break;
       }
@@ -833,9 +843,7 @@ seqioWriteFasta(seqioFile* sf,
 }
 
 void
-seqioWriteFastq(seqioFile* sf,
-                seqioRecord* record,
-                seqioWriteOptions* options)
+seqioWriteFastq(seqioFile* sf, seqioRecord* record, seqioWriteOptions* options)
 {
   ensureWriteable(sf);
   if (!options) {

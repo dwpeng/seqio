@@ -7,11 +7,7 @@ main(int argc, char* argv[])
 {
   UNUSED(argc);
   UNUSED(argv);
-  seqioOpenOptions openOptions = {
-    .filename = NULL,
-    .mode = seqOpenModeRead,
-  };
-  seqioFile* sf = seqioOpen(&openOptions);
+  seqioFile* sf = seqioStdinOpen();
   seqioRecord* record = NULL;
   while ((record = seqioRead(sf, record)) != NULL) {
       printf("name: %s: length: %lu\n", record->name->data,
