@@ -19,6 +19,8 @@
 #define seqioDefaultLineWidth 0
 #define seqioDefaultincludeComment true
 #define seqioDefaultBufferSize 1024l * 16l
+#define seqioDefaultWriteBufferSize 1024l * 128l
+
 
 #define seqioMalloc(size) malloc(size)
 #define seqioRealloc(ptr, size) realloc(ptr, size)

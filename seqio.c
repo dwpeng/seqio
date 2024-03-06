@@ -383,13 +383,17 @@ seqioOpen(seqioOpenOptions* options)
     return NULL;
   }
 #endif
-  sf->buffer.data = (char*)seqioMalloc(seqioDefaultBufferSize);
+  size_t buff_size = seqioDefaultBufferSize;
+  if(options->mode == seqOpenModeWrite){
+    buff_size = seqioDefaultWriteBufferSize;
+  }
+  sf->buffer.data = (char*)seqioMalloc(buff_size);
   if (sf->buffer.data == NULL) {
     fclose(sf->pravite.file);
     seqioFree(sf);
     return NULL;
   }
-  sf->buffer.capacity = seqioDefaultBufferSize;
+  sf->buffer.capacity = buff_size;
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
   sf->pravite.type = seqioRecordTypeUnknown;
