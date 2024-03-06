@@ -8,3 +8,5 @@ test-kseq
 *.so
 /test-seqio-*
 test-cigar
+/seqkit-ben*
+/benchmark-*
