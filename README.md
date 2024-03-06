@@ -1,7 +1,7 @@
 ## seqio
 A c library for reading and writing sequences in fasta and fastq format.
 
-> Inspired by [kseq.h](https://github.com/attractivechaos/klib/blob/master/kseq.h), another library for reading and writing fasta and fastq files.
+> Inspired by [kseq.h](https://github.com/attractivechaos/klib/blob/master/kseq.h), another library for reading fasta and fastq files.
 
 ## features
 * Read and write fasta and fastq files
