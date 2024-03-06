@@ -76,16 +76,12 @@ seqioFile* seqioOpen(seqioOpenOptions* options);
 
 /**
   * @brief open a file from stdin
-  * @param filename
-  * @param mode
   * @return seqioFile* file
  */
 seqioFile* seqioStdinOpen();
 
 /**
   * @brief write to stdout
-  * @param filename
-  * @param mode
   * @return seqioFile* file
  */
 seqioFile* seqioStdoutOpen();
