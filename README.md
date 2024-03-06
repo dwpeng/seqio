@@ -153,20 +153,29 @@ seqioRecord* seqioReadFasta(seqioFile* file, seqioRecord* record);
 ```
 
 ### write record
+
 ```c
+typedef struct {
+  size_t lineWidth;      // fasta file line width (default: 0, no wrap)
+  bool includeComment;   // include comment in fasta record (default: true)
+  baseCase baseCase;     // base case (default: original)
+} seqioWriteOptions;
+
 /**
   * @brief write a fasta record
   * @param file
   * @param record
+  * @param options
  */
-void seqioWriteFasta(seqioFile* file, seqioRecord* record);
+void seqioWriteFasta(seqioFile* sf, seqioRecord* record, seqioWriteOptions* options);
 
 /**
   * @brief write a fastq record
   * @param file
   * @param record
+  * @param options
  */
-void seqioWriteFastq(seqioFile* file, seqioRecord* record);
+void seqioWriteFastq(seqioFile* file, seqioRecord* record, seqioWriteOptions* options);
 ```
 
 ## example
