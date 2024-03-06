@@ -1,78 +1,177 @@
 ## seqio
 A c library for reading and writing sequences in fasta and fastq format.
 
+> Inspired by [kseq.h](https://github.com/attractivechaos/klib/blob/master/kseq.h), another library for reading and writing fasta and fastq files.
+
 ## features
 * Read and write fasta and fastq files
 * Support for gzipped files
+* Intuitive API
 
-## usage
+## Quick start
+
 ```c
+// main.c
 #include "seqio.h"
+#include <stdio.h>
 
 int
-main()
+main(int argc, char* argv[])
 {
-  seqioOpenOptions openOptions1 = {
-    .filename = "./test-data/test1.fa.gz",
-  };
-  seqioFile* sf1 = seqioOpen(&openOptions1);
-
-  seqioOpenOptions openOptions2 = {
-    .filename = "./test-data/test2.fa",
-    .mode = seqOpenModeWrite,
-    .isGzipped = false,
-  };
-  seqioFile* sf2 = seqioOpen(&openOptions2);
-
-  seqioOpenOptions openOptions3 = {
-    .filename = "./test-data/test3.fq.gz",
-  };
-  seqioFile* sf3 = seqioOpen(&openOptions3);
-
-  seqioOpenOptions openOptions4 = {
-    .filename = "./test-data/test4.fq",
-    .mode = seqOpenModeWrite,
-    .isGzipped = false,
-  };
-  seqioFile* sf4 = seqioOpen(&openOptions4);
-
-  seqioWriteOptions writeOptions2 = {
-    .lineWidth = 5,
-    .baseCase = seqioBaseCaseLower,
-    .includeComment = true,
-  };
-
-  seqioWriteOptions writeOptions4 = {
-    .baseCase = seqioBaseCaseUpper,
-    .includeComment = true,
-  };
-
-  seqioRecord* Record1 = NULL;
-  seqioRecord* Record2 = NULL;
-  while ((Record1 = seqioRead(sf1, Record1)) != NULL) {
-    printf(">%s %s\n", Record1->name->data, Record1->comment->data);
-    printf("%s\n", Record1->sequence->data);
-    seqioWriteFasta(sf2, Record1, &writeOptions2);
+  if (argc == 1) {
+    fprintf(stderr, "Usage: %s <in.fasta>\n", argv[0]);
+    return 1;
   }
-  seqioClose(sf1);
-  seqioClose(sf2);
-
-  while ((Record2 = seqioRead(sf3, Record2)) != NULL) {
-    printf("@%s %s\n", Record2->name->data, Record2->comment->data);
-    printf("%s\n", Record2->sequence->data);
-    printf("+\n");
-    printf("%s\n", Record2->quality->data);
-    seqioWriteFastq(sf4, Record2, &writeOptions4);
+  // Step1: set open options
+  seqioOpenOptions openOptions = {
+    .filename = argv[1],
+    .mode = seqOpenModeRead,
+  };
+  // Step2: open file
+  seqioFile* sf = seqioOpen(&openOptions);
+  // step3: read records
+  seqioRecord* record = NULL;
+  // step4: read records one by one
+  while ((record = seqioRead(sf, record)) != NULL) {
+    // setp5: do something with the record
+    printf("name: %s: %lu\n", record->name->data, record->sequence->length);
+    // !!! Do not free record, 
+    // !!! beacuse it will be freed by seqioRead automatically.
   }
-
-  seqioClose(sf3);
-  seqioClose(sf4);
+  // step6: close file
+  seqioClose(sf);
 }
+```
 
+```bash
+gcc -o main main.c seqio.c -lz
+./main test.fasta
+```
+
+## API & Structure
+
+### seqioOpenOptions
+```c
+typedef enum {
+  seqOpenModeRead,
+  seqOpenModeWrite,
+} seqOpenMode;
+
+typedef struct {
+  char* filename;   // filename
+  bool isGzipped;   // it will be detected automatically if mode is seqOpenModeRead
+  seqOpenMode mode; // default is seqOpenModeRead
+} seqioOpenOptions;
+```
+
+### open File
+```c
+
+/**
+  * @brief open a file
+  * @param options open options
+  * @return seqioFile* file
+ */
+seqioFile* seqioOpen(seqioOpenOptions* options);
+
+/**
+  * @brief open a file from stdin
+  * @param filename
+  * @param mode
+  * @return seqioFile* file
+ */
+seqioFile* seqioStdinOpen();
+
+/**
+  * @brief write to stdout
+  * @param filename
+  * @param mode
+  * @return seqioFile* file
+ */
+seqioFile* seqioStdoutOpen();
+
+/**
+  * @brief close a file
+  * @param file
+ */
+void seqioClose(seqioFile* file);
+```
+
+### record
+```c
+typedef enum {
+  seqioRecordTypeFasta,
+  seqioRecordTypeFastq,
+  seqioRecordTypeUnknown
+} seqioRecordType;
+
+typedef struct {
+  size_t length;
+  size_t capacity;
+  char* data;
+} seqioString;
+
+typedef struct {
+  seqioRecordType type;
+  seqioString* name;
+  seqioString* comment;
+  seqioString* sequence;
+  seqioString* quality;
+} seqioRecord;
+```
+while reading a record, the memory of the record will be allocated automatically, and it will be used repeatedly. So you don't need to free the memory of the record. At the end of the file, the memory of the record will be freed automatically.
+
+A record will be freed when the following conditions are met:
+* All records are read by `seqioRead` or `seqioReadFasta` or `seqioReadFastq`
+* The file is closed by `seqioClose`
+
+### read record
+```c
+/**
+  * @brief read a record
+  * @param file
+  * @param record
+  * @return seqioRecord* record or NULL if the file is end
+ */
+seqioRecord* seqioRead(seqioFile* file, seqioRecord* record);
+
+/**
+  * @brief read a record in fasta format
+  * @param file
+  * @param record
+  * @return seqioRecord* record or NULL if the file is end
+ */
+seqioRecord* seqioReadFastq(seqioFile* file, seqioRecord* record);
+
+/**
+  * @brief read a record in fastq format
+  * @param file
+  * @param record
+  * @return seqioRecord* record or NULL if the file is end
+ */
+seqioRecord* seqioReadFasta(seqioFile* file, seqioRecord* record);
+```
+
+### write record
+```c
+/**
+  * @brief write a fasta record
+  * @param file
+  * @param record
+ */
+void seqioWriteFasta(seqioFile* file, seqioRecord* record);
+
+/**
+  * @brief write a fastq record
+  * @param file
+  * @param record
+ */
+void seqioWriteFastq(seqioFile* file, seqioRecord* record);
 ```
 
 ## example
-more examples can be found in the test directory
+more examples can be found in the test/benchmark folder.
+
 
 ## memory check
 ```bash
@@ -97,9 +196,31 @@ valgrind --leak-check=full --leak-check=full --show-leak-kinds=all --log-file=./
 ==1139682== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
 ```
 
-## test with kseq
+## benchmark
+For this benchmark, I re-used sequence files from SeqKit benchmark:
+[seqkit-benchmark-data.tar.gz](http://app.shenwei.me/data/seqkit/seqkit-benchmark-data.tar.gz)
+
+| file         | format | type |  num_seqs |       sum_len | min_len |      avg_len |     max_len |
+| :----------- | :----- | :--- | --------: | ------------: | ------: | -----------: | ----------: |
+| dataset_A.fa | FASTA  | DNA  |    67,748 | 2,807,643,808 |      56 |     41,442.5 |   5,976,145 |
+| dataset_B.fa | FASTA  | DNA  |       194 | 3,099,750,718 |     970 | 15,978,096.5 | 248,956,422 |
+| dataset_C.fq | FASTQ  | DNA  | 9,186,045 |   918,604,500 |     100 |          100 |         100 |
+
 ```bash
-make -f Makefile-test
-time ./test-kseq ./test-data/test2.fa
-time ./test-seqio ./test-data/test2.fa
+python benchmark.py
 ```
+
+### Machine info
+```txt
+GCC: gcc version 12.2.0 (Debian 12.2.0-14)
+OS: Linux 5.15.133.1-microsoft-standard-WSL2 #1 SMP Thu Oct 5 21:02:42 UTC 2023 x86_64 GNU/Linux
+CPU: 11th Gen Intel(R) Core(TM) i5-11500 @ 2.70GHz
+RAM: 16G
+```
+
+### reselt
+| file         |    seqio |   kseq |
+| :----------- | ---------: | -----: |
+| dataset_A.fa | **0.791 s** | 1.052 s |
+| dataset_B.fa | **1.467 s** | 1.925 s |
+| dataset_C.fq | **1.404 s** | 1.162 s |
