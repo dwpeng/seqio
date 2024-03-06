@@ -223,7 +223,10 @@ CPU: 11th Gen Intel(R) Core(TM) i5-11500 @ 2.70GHz
 RAM: 16G
 ```
 
-### reselt
+### Result
+
+Read fasta and fastq files with 1 thread.
+
 | file         |    seqio |   kseq |
 | :----------- | ---------: | -----: |
 | dataset_A.fa | **0.791 s** | 1.052 s |
