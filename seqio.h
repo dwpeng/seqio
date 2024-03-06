@@ -16,8 +16,8 @@
 #include <zconf.h>
 #endif
 
-#define seqioDefaultLineWidth 80
-#define seqioDefaultincludeComment false
+#define seqioDefaultLineWidth 0
+#define seqioDefaultincludeComment true
 #define seqioDefaultBufferSize 1024l * 16l
 
 #define seqioMalloc(size) malloc(size)
