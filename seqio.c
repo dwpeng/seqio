@@ -116,10 +116,6 @@ readDataToBuffer(seqioFile* sf)
 static inline void
 freshDataToFile(seqioFile* sf)
 {
-  ensureWriteable(sf);
-  if (sf->buffer.left == 0) {
-    return;
-  }
 #ifdef enable_gzip
   if (sf->pravite.options->isGzipped) {
     gzwrite(sf->pravite.file, sf->buffer.data + sf->buffer.offset,
@@ -133,28 +129,28 @@ freshDataToFile(seqioFile* sf)
 #endif
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
+  printf("freshDataToFile\n");
+  fflush(stdout);
 }
 
 static inline void
 writeDataToBuffer(seqioFile* sf, char* data, size_t length)
 {
-  ensureWriteable(sf);
-  size_t needWriteSize = sf->buffer.left + length;
-  while (needWriteSize) {
-    if (needWriteSize <= sf->buffer.capacity) {
-      memcpy(sf->buffer.data + sf->buffer.offset + sf->buffer.left, data,
-             needWriteSize);
-      sf->buffer.left += needWriteSize;
+  size_t writeSize = length;
+  size_t buffFree;
+  while(length){
+    buffFree = sf->buffer.capacity - sf->buffer.left;
+    if(buffFree == 0){
       freshDataToFile(sf);
-      return;
-    } else {
-      size_t writeSize = sf->buffer.capacity - sf->buffer.left;
-      memcpy(sf->buffer.data + sf->buffer.offset + sf->buffer.left, data,
-             writeSize);
-      sf->buffer.left += writeSize;
+      buffFree = sf->buffer.capacity;
+    }
+    writeSize = length < buffFree ? length : buffFree;
+    memcpy(sf->buffer.data + sf->buffer.left, data, writeSize);
+    sf->buffer.left += writeSize;
+    length -= writeSize;
+    data += writeSize;
+    if(sf->buffer.left == sf->buffer.capacity){
       freshDataToFile(sf);
-      data += writeSize;
-      needWriteSize -= writeSize;
     }
   }
 }
