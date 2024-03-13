@@ -138,9 +138,9 @@ writeDataToBuffer(seqioFile* sf, char* data, size_t length)
 {
   size_t writeSize = length;
   size_t buffFree;
-  while(length){
+  while (length) {
     buffFree = sf->buffer.capacity - sf->buffer.left;
-    if(buffFree == 0){
+    if (buffFree == 0) {
       freshDataToFile(sf);
       buffFree = sf->buffer.capacity;
     }
@@ -149,7 +149,7 @@ writeDataToBuffer(seqioFile* sf, char* data, size_t length)
     sf->buffer.left += writeSize;
     length -= writeSize;
     data += writeSize;
-    if(sf->buffer.left == sf->buffer.capacity){
+    if (sf->buffer.left == sf->buffer.capacity) {
       freshDataToFile(sf);
     }
   }
@@ -301,6 +301,17 @@ handleStdin(seqioFile* sf)
     buffSize += readSize;
     sf->buffer.left = sf->buffer.capacity - buffSize;
   }
+  if (buffSize > 2) {
+    if (sf->buffer.data[0] == 0x1f
+        && ((unsigned char)sf->buffer.data[1]) == 0x8b) {
+      seqioFree(sf->buffer.data);
+      seqioFree(sf);
+      fprintf(
+          stderr,
+          "stdin is a gzip file, please use zcat or gunzip to decompress\n");
+      exit(1);
+    }
+  }
   sf->pravite.isEOF = true;
   sf->buffer.left = buffSize;
   sf->buffer.buffSize = buffSize;
@@ -380,7 +391,7 @@ seqioOpen(seqioOpenOptions* options)
   }
 #endif
   size_t buff_size = seqioDefaultBufferSize;
-  if(options->mode == seqOpenModeWrite){
+  if (options->mode == seqOpenModeWrite) {
     buff_size = seqioDefaultWriteBufferSize;
   }
   sf->buffer.data = (char*)seqioMalloc(buff_size);
