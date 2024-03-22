@@ -56,7 +56,7 @@ typedef enum {
 } seqOpenMode;
 
 typedef struct {
-  char* filename;
+  const char* filename;
   bool isGzipped;
   seqOpenMode mode;
 } seqioOpenOptions;
