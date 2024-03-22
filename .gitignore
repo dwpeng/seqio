@@ -11,3 +11,5 @@ test-cigar
 /seqkit-ben*
 /benchmark-*
 *.so
+/python/dist
+
