@@ -1,15 +1,8 @@
-import seqio
+from seqio import seqioFile, seqioOpenMode
 
-file = seqio.seqioFile("test-data/test2.fa", seqio.seqioOpenMode.READ, True)
+file = seqioFile("test-data/test2.fa", seqioOpenMode.READ, True)
 
-records: list[seqio.seqioRecord] = []
-while True:
-    record = file.readOne()
-    if record is None:
-        break
-    records.append(record)
-
-for record in records:
+for record in file:
     print(record.name)
     print(record.sequence)
     print(record.length())

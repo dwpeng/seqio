@@ -1,7 +1,7 @@
-from . import _seqio
+from . import seqio
 
-seqioFile = _seqio.seqioFile
-seqioOpenMode = _seqio.seqioOpenMode
-seqioRecord = _seqio.seqioRecord
+seqioFile = seqio.seqioFile
+seqioOpenMode = seqio.seqioOpenMode
+seqioRecord = seqio.seqioRecord
 
 __all__ = ["seqioFile", "seqioOpenMode", "seqioRecord"]

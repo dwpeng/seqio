@@ -1,10 +1,9 @@
-from .lib._seqio import (
+from _seqio import (
     seqioFile as _seqioFile,
     seqOpenMode as _seqOpenMode,
     seqioRecord as _seqioRecord,
 )
 from typing import Optional
-
 
 class seqioOpenMode:
     READ = _seqOpenMode.READ
