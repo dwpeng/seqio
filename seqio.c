@@ -5,14 +5,14 @@
 
 seqioOpenOptions __defaultStdinOptions = {
   .filename = NULL,
-  .mode = seqOpenModeRead,
   .isGzipped = false,
+  .mode = seqOpenModeRead,
 };
 
 seqioOpenOptions __defaultStdoutOptions = {
   .filename = NULL,
-  .mode = seqOpenModeWrite,
   .isGzipped = false,
+  .mode = seqOpenModeWrite,
 };
 
 static char* openModeStr[] = {
