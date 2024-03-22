@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <algorithm>
 #include <optional>
 #include <pybind11/cast.h>
 #include <pybind11/detail/common.h>
@@ -59,6 +60,7 @@ public:
   std::string
   upper()
   {
+    using namespace std;
     std::string upper_sequence = sequence;
     std::transform(upper_sequence.begin(), upper_sequence.end(),
                    upper_sequence.begin(), ::toupper);
@@ -68,6 +70,7 @@ public:
   std::string
   lower()
   {
+    using namespace std;
     std::string lower_sequence = sequence;
     std::transform(lower_sequence.begin(), lower_sequence.end(),
                    lower_sequence.begin(), ::tolower);
@@ -100,7 +103,7 @@ public:
     this->isGzipped = isGzipped;
     this->openOptions = seqioOpenOptions();
     this->writeOptions = seqioWriteOptions();
-    this->openOptions.filename = filename.data();
+    this->openOptions.filename = filename.c_str();
     this->openOptions.mode = mode;
     this->openOptions.isGzipped = isGzipped;
     this->file = seqioOpen(&openOptions);
