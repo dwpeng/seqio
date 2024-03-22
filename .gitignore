@@ -12,4 +12,4 @@ test-cigar
 /benchmark-*
 *.so
 /python/dist
-
+/dist
