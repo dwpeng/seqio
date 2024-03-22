@@ -10,3 +10,4 @@ test-kseq
 test-cigar
 /seqkit-ben*
 /benchmark-*
+*.so
