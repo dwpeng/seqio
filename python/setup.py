@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="seqio",
+    name="fastseqio",
     version="0.0.1",
     author="dwpeng",
     author_email="1732889554@qq.com",

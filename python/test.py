@@ -2,7 +2,7 @@ import seqio
 
 file = seqio.seqioFile("test-data/test2.fa", seqio.seqioOpenMode.READ, True)
 
-records = []
+records: list[seqio.seqioRecord] = []
 while True:
     record = file.readOne()
     if record is None:
@@ -14,4 +14,4 @@ for record in records:
     print(record.sequence)
     print(record.length())
     s = record.sequence
-    s = s.upper()
+    print(s.upper())

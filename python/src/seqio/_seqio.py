@@ -5,6 +5,7 @@ from .lib._seqio import (
 )
 from typing import Optional
 
+
 class seqioOpenMode:
     READ = _seqOpenMode.READ
     WRITE = _seqOpenMode.WRITE
@@ -13,8 +14,8 @@ class seqioOpenMode:
 class seqioRecord:
     def __init__(
         self,
-        name,
-        sequence,
+        name: str,
+        sequence: str,
         quality: Optional[str] = None,
         comment: Optional[str] = None,
     ):
@@ -55,7 +56,10 @@ class seqioRecord:
 
 class seqioFile:
     def __init__(
-        self, path: str, mode: seqioOpenMode = seqioOpenMode.READ, compressed: bool = False
+        self,
+        path: str,
+        mode: seqioOpenMode = seqioOpenMode.READ,
+        compressed: bool = False,
     ):
         self.__file = _seqioFile(path, mode, compressed)
 
