@@ -10,6 +10,36 @@ A c library for reading and writing sequences in fasta and fastq format.
 
 ## Quick start
 
+### Python
+
+WIP: I'm working on a python wrapper for this library.
+
+[x] linux
+  [x] reading
+  [ ] writing
+[ ] mac
+[ ] windows
+
+**Install**
+```bash
+pip install fastseqio
+```
+
+```py
+from seqio import seqioFile
+
+# default open mode is Read
+# auto detect gzip
+file = seqioFile("test-data/test2.fa")
+
+for record in file:
+  print(record.name)
+  print(record.sequence)
+  print(len(record))
+```
+
+### C
+
 ```c
 // main.c
 #include "seqio.h"
@@ -42,6 +72,9 @@ main(int argc, char* argv[])
   seqioClose(sf);
 }
 ```
+
+
+
 
 ```bash
 gcc -o main main.c seqio.c -lz
