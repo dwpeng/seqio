@@ -62,27 +62,42 @@ class seqioFile:
     ):
         self.__file = _seqioFile(path, mode, compressed)
 
+    def _get_file(self):
+        return self.__file
+
     def readOne(self):
-        record = self.__file.readOne()
+        file = self._get_file()
+        record = file.readOne()
         if record is None:
             return None
         return seqioRecord.fromRecord(record)
 
     def readFasta(self):
-        record = self.__file.readFasta()
+        file = self._get_file()
+        record = file.readFasta()
         if record is None:
             return None
         return seqioRecord.fromRecord(record)
 
     def readFastq(self):
-        record = self.__file.readFastq()
+        file = self._get_file()
+        record = file.readFastq()
         if record is None:
             return None
         return seqioRecord.fromRecord(record)
 
     def __iter__(self):
+        file = self._get_file()
         while True:
-            record = self.__file.readOne()
+            record = file.readOne()
             if record is None:
                 break
             yield seqioRecord.fromRecord(record)
+
+
+class seqioStdinFile(seqioFile):
+    def __init__(self):
+        self.__file = _seqioFile("", seqioOpenMode.READ, False)
+
+    def _get_file(self):
+        return self.__file

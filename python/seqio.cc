@@ -1,15 +1,15 @@
 #include "seqio.h"
+#include "pybind11/cast.h"
+#include "pybind11/detail/common.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <iterator>
 #include <memory>
-#include <algorithm>
 #include <optional>
-#include "pybind11/cast.h"
-#include "pybind11/detail/common.h"
-#include "pybind11/pybind11.h"
-#include "pybind11/pytypes.h"
 #include <string>
 
 namespace py = pybind11;
@@ -34,6 +34,13 @@ public:
       this->quality = std::string();
       this->quality.append(quality->data, quality->length);
     }
+  }
+  seqioRecordImpl(std::string name,
+                  std::string comment,
+                  std::string sequence,
+                  std::string quality)
+      : name(name), comment(comment), sequence(sequence), quality(quality)
+  {
   }
   ~seqioRecordImpl() {}
   std::string
@@ -98,15 +105,25 @@ public:
 
   seqioFileImpl(std::string filename, seqOpenMode mode, bool isGzipped)
   {
-    this->filename = filename;
-    this->mode = mode;
-    this->isGzipped = isGzipped;
-    this->openOptions = seqioOpenOptions();
-    this->writeOptions = seqioWriteOptions();
-    this->openOptions.filename = filename.c_str();
-    this->openOptions.mode = mode;
-    this->openOptions.isGzipped = isGzipped;
-    this->file = seqioOpen(&openOptions);
+    if (!filename.empty()) {
+      this->filename = filename;
+      this->mode = mode;
+      this->isGzipped = isGzipped;
+      this->openOptions = seqioOpenOptions();
+      this->writeOptions = seqioWriteOptions();
+      this->openOptions.filename = filename.c_str();
+      this->openOptions.mode = mode;
+      this->openOptions.isGzipped = isGzipped;
+      this->file = seqioOpen(&openOptions);
+    }
+    if (filename.empty()) {
+      if (mode == seqOpenMode::seqOpenModeRead) {
+        this->file = seqioStdinOpen();
+      }
+      if (mode == seqOpenMode::seqOpenModeWrite) {
+        this->file = seqioStdoutOpen();
+      }
+    }
     this->record = NULL;
   }
 
