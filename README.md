@@ -14,11 +14,11 @@ A c library for reading and writing sequences in fasta and fastq format.
 
 WIP: I'm working on a python wrapper for this library.
 
-[x] linux
-  [x] reading
-  [ ] writing
-[ ] mac
-[ ] windows
+| os | reading | writing |
+| :--- | :--- | :--- |
+| Linux | ✅ | 🚧 |
+| MacOS | 🚧 | 🚧 |
+| Windows | 🚧 | 🚧 |
 
 **Install**
 ```bash
@@ -31,6 +31,16 @@ from seqio import seqioFile
 # default open mode is Read
 # auto detect gzip
 file = seqioFile("test-data/test2.fa")
+
+for record in file:
+  print(record.name)
+  print(record.sequence)
+  print(len(record))
+
+# read from stdin
+from seqio import seqioStdinFile
+
+file = seqioStdinFile()
 
 for record in file:
   print(record.name)
