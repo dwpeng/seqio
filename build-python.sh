@@ -9,3 +9,4 @@ mkdir dist
 mv *.whl dist/
 rm -rf build
 rm -rf python/src/*.egg-info
+pip install dist/*.whl --force-reinstall
