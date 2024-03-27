@@ -1,6 +1,6 @@
-from seqio import seqioFile, seqioOpenMode
+from seqio import seqioStdinFile
 
-file = seqioFile("test-data/test2.fa", seqioOpenMode.READ, True)
+file = seqioStdinFile()
 
 for record in file:
     print(record.name)
@@ -8,3 +8,4 @@ for record in file:
     print(record.length())
     s = record.sequence
     print(s.upper())
+
