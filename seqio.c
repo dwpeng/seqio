@@ -435,7 +435,7 @@ seqioClose(seqioFile* sf)
   if (sf->buffer.data != NULL) {
     seqioFree(sf->buffer.data);
   }
-  if (sf->record != NULL) {
+  if (sf->record != NULL && sf->pravite.options->freeRecordOnEOF) {
     seqioFreeRecord(sf->record);
   }
   seqioFree(sf);
@@ -582,7 +582,9 @@ seqioRecord*
 seqioReadFasta(seqioFile* sf, seqioRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
-    seqioFreeRecord(record);
+    if (sf->pravite.options->freeRecordOnEOF) {
+      seqioFreeRecord(record);
+    }
     sf->record = NULL;
     return NULL;
   }
@@ -667,7 +669,9 @@ seqioRecord*
 seqioReadFastq(seqioFile* sf, seqioRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
-    seqioFreeRecord(record);
+    if (sf->pravite.options->freeRecordOnEOF) {
+      seqioFreeRecord(record);
+    }
     sf->record = NULL;
     return NULL;
   }
@@ -771,7 +775,9 @@ seqioRecord*
 seqioRead(seqioFile* sf, seqioRecord* record)
 {
   if (sf->pravite.isEOF && sf->buffer.left == 0) {
-    seqioFreeRecord(record);
+    if (sf->pravite.options->freeRecordOnEOF) {
+      seqioFreeRecord(record);
+    }
     sf->record = NULL;
     return NULL;
   }
