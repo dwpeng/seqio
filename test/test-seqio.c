@@ -13,8 +13,10 @@ main(int argc, char* argv[])
     .mode = seqOpenModeRead,
   };
   seqioFile* sf = seqioOpen(&openOptions);
-  seqioRecord* Record = NULL;
-  while ((Record = seqioRead(sf, Record)) != NULL) {
+  seqioRecord* record = NULL;
+  while ((record = seqioRead(sf, record)) != NULL) {
+    printf("@%s %s\n%s+\n%s\n", record->name->data, record->comment->data,
+           record->sequence->data, record->quality->data);
   }
   seqioClose(sf);
 }

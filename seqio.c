@@ -373,7 +373,6 @@ seqioOpen(seqioOpenOptions* options)
   if (options->isGzipped) {
     sf->pravite.file = gzopen(options->filename, getOpenModeStr(options));
     if (sf->pravite.file == NULL) {
-      fclose(sf->pravite.file);
       seqioFree(sf);
       return NULL;
     }

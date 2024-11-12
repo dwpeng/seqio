@@ -172,6 +172,13 @@ public:
         this->record->quality);
   }
 
+  // TODO
+  void
+  writeFasta(std::shared_ptr<seqioRecordImpl> record)
+  {
+    seqioRecord record_;
+  }
+
 private:
   seqioFile* file;
   seqioOpenOptions openOptions;
