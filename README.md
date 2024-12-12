@@ -16,7 +16,7 @@ WIP: I'm working on a python wrapper for this library.
 
 | os | reading | writing |
 | :--- | :--- | :--- |
-| Linux | ✅ | 🚧 |
+| Linux | ✅ | ✅ |
 | MacOS | 🚧 | 🚧 |
 | Windows | 🚧 | 🚧 |
 
@@ -26,7 +26,7 @@ pip install fastseqio
 ```
 
 ```py
-from seqio import seqioFile
+from fastseqio import seqioFile
 
 # default open mode is Read
 # auto detect gzip
@@ -46,7 +46,15 @@ for record in file:
   print(record.name)
   print(record.sequence)
   print(len(record))
+
+# write
+file = seqioFile("out.fa", "w")
+record = Record("test", "ACGT")
+
+file.writeFasta(record)
+file.writeFasta(record)
 ```
+
 
 ### C
 
