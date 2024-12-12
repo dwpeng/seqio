@@ -91,6 +91,7 @@ typedef struct {
     bool toStdout;
     seqioOpenOptions* options;
     void* file;
+    seqOpenMode mode;
   } pravite;
 } seqioFile;
 

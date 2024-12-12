@@ -129,7 +129,6 @@ freshDataToFile(seqioFile* sf)
 #endif
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
-  printf("freshDataToFile\n");
   fflush(stdout);
 }
 
@@ -162,7 +161,9 @@ seqioStringNew(size_t capacity)
   if (string == NULL) {
     exit(1);
   }
-  string->data = (char*)seqioMalloc(capacity);
+  if (capacity) {
+    string->data = (char*)seqioMalloc(capacity);
+  }
   if (string->data == NULL) {
     seqioFree(string);
     exit(1);
@@ -404,6 +405,7 @@ seqioOpen(seqioOpenOptions* options)
   sf->buffer.left = 0;
   sf->pravite.type = seqioRecordTypeUnknown;
   sf->pravite.state = READ_STATUS_NONE;
+  sf->pravite.mode = options->mode;
   sf->record = NULL;
   sf->pravite.isEOF = false;
   if (options->mode == seqOpenModeRead) {
@@ -422,9 +424,18 @@ seqioClose(seqioFile* sf)
   }
   if (sf->pravite.file != NULL) {
 #ifdef enable_gzip
+    if (sf->pravite.mode == seqOpenModeWrite) {
+      freshDataToFile(sf);
+    }
     if (sf->pravite.options->isGzipped) {
+      if (sf->pravite.mode == seqOpenModeWrite) {
+        gzflush(sf->pravite.file, Z_FINISH);
+      }
       gzclose(sf->pravite.file);
     } else {
+      if (sf->pravite.mode == seqOpenModeWrite) {
+        fflush(sf->pravite.file);
+      }
       fclose(sf->pravite.file);
     }
 #else
@@ -834,6 +845,7 @@ seqioWriteFasta(seqioFile* sf, seqioRecord* record, seqioWriteOptions* options)
   }
   if (options->lineWidth == 0) {
     writeDataToBuffer(sf, record->sequence->data, record->sequence->length);
+    writeDataToBuffer(sf, "\n", 1);
   } else {
     size_t sequenceLength = record->sequence->length;
     size_t sequenceOffset = 0;

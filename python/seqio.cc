@@ -14,6 +14,38 @@
 
 namespace py = pybind11;
 
+seqioString*
+seqioStringRef(const char* s)
+{
+  if (!s) {
+    auto str = new seqioString();
+    str->length = 0;
+    str->capacity = 0;
+    str->data = new char[1];
+    str->data[0] = '\0';
+    return str;
+  }
+  auto str = new seqioString();
+  str->length = strlen(s);
+  str->capacity = 0;
+  str->data = const_cast<char*>(s);
+  return str;
+}
+
+seqioRecord*
+seqioRecordInit(const char* name,
+                const char* comment,
+                const char* sequence,
+                const char* quality)
+{
+  seqioRecord* record = (seqioRecord*)seqioMalloc(sizeof(seqioRecord));
+  record->name = seqioStringRef(name);
+  record->comment = seqioStringRef(comment);
+  record->sequence = seqioStringRef(sequence);
+  record->quality = seqioStringRef(quality);
+  return record;
+}
+
 class seqioRecordImpl {
 
 public:
@@ -64,6 +96,34 @@ public:
     return comment;
   }
 
+  void
+  set_name(std::string& name)
+  {
+    this->name.clear();
+    this->name.append(name);
+  }
+
+  void
+  set_sequence(std::string& sequence)
+  {
+    this->sequence.clear();
+    this->sequence.append(sequence);
+  }
+
+  void
+  set_comment(std::string& comment)
+  {
+    this->comment.clear();
+    this->comment.append(comment);
+  }
+
+  void
+  set_quality(std::string& quality)
+  {
+    this->quality.clear();
+    this->quality.append(quality);
+  }
+
   std::string
   upper()
   {
@@ -88,6 +148,53 @@ public:
   length()
   {
     return sequence.length();
+  }
+
+  std::string
+  reverse()
+  {
+    using namespace std;
+    std::string reverse_sequence = sequence;
+    std::reverse(reverse_sequence.begin(), reverse_sequence.end());
+    return reverse_sequence;
+  }
+
+  std::string
+  subseq(size_t start, size_t end)
+  {
+    return sequence.substr(start, end - start);
+  }
+
+  std::string
+  hpc()
+  {
+    using namespace std;
+
+    if (sequence.length() == 0) {
+      return "";
+    }
+
+    std::string hpc_sequence;
+    // compress sequence
+    // AAA -> A
+    // AAC -> AC
+    for (size_t i = 0; i < sequence.length(); i++) {
+      if (i + 1 < sequence.length()
+          && sequence[i] == sequence[i + 1]) { // AAA -> A
+        continue;
+      }
+      hpc_sequence.push_back(sequence[i]);
+    }
+    return hpc_sequence;
+  }
+
+  seqioRecord*
+  as_seqioRecord()
+  {
+    seqioRecord* record =
+        seqioRecordInit(this->name.c_str(), this->comment.c_str(),
+                        this->sequence.c_str(), this->quality.c_str());
+    return record;
   }
 
 private:
@@ -172,11 +279,20 @@ public:
         this->record->quality);
   }
 
-  // TODO
   void
   writeFasta(std::shared_ptr<seqioRecordImpl> record)
   {
-    seqioRecord record_;
+    seqioRecord* _record = record->as_seqioRecord();
+    seqioWriteFasta(file, _record, NULL);
+    seqioFree(_record);
+  }
+
+  void
+  writeFastq(std::shared_ptr<seqioRecordImpl> record)
+  {
+    seqioRecord* _record = record->as_seqioRecord();
+    seqioWriteFastq(file, _record, NULL);
+    seqioFree(_record);
   }
 
 private:
@@ -195,18 +311,31 @@ PYBIND11_MODULE(_seqio, m)
 
   py::class_<seqioRecordImpl, std::shared_ptr<seqioRecordImpl> >(m,
                                                                  "seqioRecord")
-      .def(py::init<seqioString*, seqioString*, seqioString*, seqioString*>())
-      .def_property_readonly("name", &seqioRecordImpl::get_name)
-      .def_property_readonly("sequence", &seqioRecordImpl::get_sequence)
-      .def_property_readonly("quality", &seqioRecordImpl::get_quality)
-      .def_property_readonly("comment", &seqioRecordImpl::get_comment)
+      .def(py::init([](std::string name, std::string comment,
+                       std::string sequence, std::string quality) {
+        return std::make_shared<seqioRecordImpl>(name, comment, sequence,
+                                                 quality);
+      }))
+      .def_property("name", &seqioRecordImpl::get_name,
+                    &seqioRecordImpl::set_name)
+      .def_property("sequence", &seqioRecordImpl::get_sequence,
+                    &seqioRecordImpl::set_sequence)
+      .def_property("quality", &seqioRecordImpl::get_quality,
+                    &seqioRecordImpl::set_quality)
+      .def_property("comment", &seqioRecordImpl::get_comment,
+                    &seqioRecordImpl::set_comment)
       .def("upper", &seqioRecordImpl::upper)
       .def("lower", &seqioRecordImpl::lower)
-      .def("length", &seqioRecordImpl::length);
+      .def("length", &seqioRecordImpl::length)
+      .def("reverse", &seqioRecordImpl::reverse)
+      .def("subseq", &seqioRecordImpl::subseq)
+      .def("hpc", &seqioRecordImpl::hpc);
 
   py::class_<seqioFileImpl, std::shared_ptr<seqioFileImpl> >(m, "seqioFile")
       .def(py::init<std::string, seqOpenMode, bool>())
       .def("readOne", &seqioFileImpl::readOne)
       .def("readFasta", &seqioFileImpl::readFasta)
-      .def("readFastq", &seqioFileImpl::readFastq);
+      .def("readFastq", &seqioFileImpl::readFastq)
+      .def("writeFasta", &seqioFileImpl::writeFasta)
+      .def("writeFastq", &seqioFileImpl::writeFastq);
 }

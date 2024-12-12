@@ -6,7 +6,7 @@ extensions = [
         sources=["./python/seqio.cc", "seqio.c"],
         include_dirs=[".", "./python/pybind11/include"],
         language="c++",
-        extra_compile_args=["-std=c++11"],
+        extra_compile_args=[""],
         extra_link_args=["-lz"],
     )
 ]

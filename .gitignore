@@ -13,3 +13,6 @@ test-cigar
 *.so
 /python/dist
 /dist
+.venv
+/build
+*.egg-info
