@@ -4,7 +4,7 @@ extensions = [
     setuptools.Extension(
         name="_fastseqio",
         sources=["./python/fastseqio.cc", "seqio.c"],
-        include_dirs=[".", "./python/pybind11/include"],
+        include_dirs=[".", "python/pybind11/include"],
         extra_compile_args=[""],
         extra_link_args=["-lz"],
     )
