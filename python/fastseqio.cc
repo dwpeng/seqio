@@ -302,7 +302,7 @@ private:
   seqioRecord* record;
 };
 
-PYBIND11_MODULE(_seqio, m)
+PYBIND11_MODULE(_fastseqio, m)
 {
   py::enum_<seqOpenMode>(m, "seqOpenMode")
       .value("READ", seqOpenMode::seqOpenModeRead)

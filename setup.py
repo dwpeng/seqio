@@ -2,10 +2,9 @@ import setuptools
 
 extensions = [
     setuptools.Extension(
-        name="_seqio",
-        sources=["./python/seqio.cc", "seqio.c"],
+        name="_fastseqio",
+        sources=["./python/fastseqio.cc", "seqio.c"],
         include_dirs=[".", "./python/pybind11/include"],
-        language="c++",
         extra_compile_args=[""],
         extra_link_args=["-lz"],
     )
