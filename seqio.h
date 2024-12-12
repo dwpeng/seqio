@@ -108,6 +108,7 @@ extern seqioOpenOptions __defaultStdoutOptions;
 #define seqioStdinOpen() seqioOpen(&__defaultStdinOptions)
 #define seqioStdoutOpen() seqioOpen(&__defaultStdoutOptions)
 void seqioClose(seqioFile* sf);
+void seqioFlush(seqioFile* sf);
 void seqioReset(seqioFile* sf);
 seqioRecordType seqioGuessType(seqioFile* sf);
 seqioRecord* seqioReadFasta(seqioFile* sf, seqioRecord* record);

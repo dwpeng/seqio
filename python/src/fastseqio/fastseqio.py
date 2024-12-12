@@ -46,7 +46,6 @@ class Record:
     @sequence.setter
     def sequence(self, value: str):
         self.__record.sequence = value
-        self.__length = len(value)
 
     @property
     def quality(self) -> str:
@@ -100,16 +99,16 @@ class Record:
         if not isinstance(index, slice):
             raise TypeError("Index must be a slice")
         start = index.start or 0
-        end = index.stop or self.__length - 1
+        end = index.stop or len(self) - 1
         if self.__record is not None:
             return self.__record.subseq(start, end)
         return self.sequence[start:end]
 
     def subseq(self, start: int, end: int) -> str:
         start = start or 0
-        end = end or self.__length - 1
+        end = end or len(self) - 1
         assert start >= 0, f"Start index {start} out of range"
-        assert end <= self.__length - 1, f"End index {end} out of range"
+        assert end <= len(self) - 1, f"End index {end} out of range"
         if self.__record is not None:
             return self.__record.subseq(start, end)
         return self.sequence[start:end]
@@ -117,9 +116,9 @@ class Record:
     def __str__(self):
         return f"seqioRecord(name={self.name})"
 
-
     def _raw(self) -> _seqioRecord:
         return self.__record
+
 
 class seqioFile:
     def __init__(
@@ -128,7 +127,6 @@ class seqioFile:
         mode: Literal["w", "r"] = "r",
         compressed: bool = False,
     ):
-        self.__compressed = compressed
         if mode not in ["r", "w"]:
             raise ValueError("Invalid mode. Must be 'r' or 'w'")
         if mode == "w":
@@ -149,6 +147,8 @@ class seqioFile:
         return self.__mode == seqioOpenMode.WRITE
 
     def _get_file(self):
+        if self.__file is None:
+            raise ValueError("File not opened")
         return self.__file
 
     def readOne(self):
@@ -198,11 +198,30 @@ class seqioFile:
                 break
             yield Record.fromRecord(record)
 
+    def close(self):
+        if self.__file is None:
+            return
+        self.__file.close()
+        self.__file = None
+
+    def fflush(self):
+        if self.__file is None:
+            return
+        self.__file.fflush()
+
+    def reset(self):
+        if self.__file is None:
+            return
+        self.__file.reset()
+
 
 class seqioStdinFile(seqioFile):
     def __init__(self):
         self.__file = _seqioFile("", seqioOpenMode.READ, False)
         self.__mode = seqioOpenMode.READ
+
+    def reset(self):
+        raise NotImplementedError("Cannot reset stdin")
 
 
 class seqioStdoutFile(seqioFile):

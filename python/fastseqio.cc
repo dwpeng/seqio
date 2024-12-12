@@ -1,8 +1,8 @@
-#include "seqio.h"
 #include "pybind11/cast.h"
 #include "pybind11/detail/common.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/pytypes.h"
+#include "seqio.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdio>
@@ -127,7 +127,6 @@ public:
   std::string
   upper()
   {
-    using namespace std;
     std::string upper_sequence = sequence;
     std::transform(upper_sequence.begin(), upper_sequence.end(),
                    upper_sequence.begin(), ::toupper);
@@ -137,7 +136,6 @@ public:
   std::string
   lower()
   {
-    using namespace std;
     std::string lower_sequence = sequence;
     std::transform(lower_sequence.begin(), lower_sequence.end(),
                    lower_sequence.begin(), ::tolower);
@@ -153,7 +151,6 @@ public:
   std::string
   reverse()
   {
-    using namespace std;
     std::string reverse_sequence = sequence;
     std::reverse(reverse_sequence.begin(), reverse_sequence.end());
     return reverse_sequence;
@@ -168,8 +165,6 @@ public:
   std::string
   hpc()
   {
-    using namespace std;
-
     if (sequence.length() == 0) {
       return "";
     }
@@ -231,18 +226,41 @@ public:
         this->file = seqioStdoutOpen();
       }
     }
-    this->record = NULL;
+    this->record = nullptr;
   }
 
-  ~seqioFileImpl() { seqioClose(file); }
+  ~seqioFileImpl() { this->close(); }
+
+  void
+  close()
+  {
+    if (this->file) {
+      seqioClose(file);
+      file = nullptr;
+      this->record = nullptr;
+    }
+  }
+
+  void
+  fflush()
+  {
+    seqioFlush(file);
+  }
+
+  void
+  reset()
+  {
+    seqioReset(file);
+  }
 
   std::shared_ptr<seqioRecordImpl>
   readOne()
   {
-    this->record = seqioRead(file, this->record);
-    if (this->record == NULL) {
+    auto record = seqioRead(file, this->record);
+    if (record == NULL) {
       return NULL;
     }
+    this->record = record;
     return std::make_shared<seqioRecordImpl>(
         this->record->name, this->record->comment, this->record->sequence,
         this->record->quality);
@@ -255,10 +273,11 @@ public:
       fprintf(stderr, "Error: file is not fasta file\n");
       return NULL;
     }
-    this->record = seqioReadFasta(file, this->record);
-    if (this->record == NULL) {
+    auto record = seqioReadFasta(file, this->record);
+    if (record == NULL) {
       return NULL;
     }
+    this->record = record;
     return std::make_shared<seqioRecordImpl>(
         this->record->name, this->record->comment, this->record->sequence,
         this->record->quality);
@@ -270,10 +289,11 @@ public:
       fprintf(stderr, "Error: file is not fastq file\n");
       return NULL;
     }
-    this->record = seqioReadFastq(file, this->record);
-    if (this->record == NULL) {
+    auto record = seqioReadFastq(file, this->record);
+    if (record == NULL) {
       return NULL;
     }
+    this->record = record;
     return std::make_shared<seqioRecordImpl>(
         this->record->name, this->record->comment, this->record->sequence,
         this->record->quality);
@@ -337,5 +357,8 @@ PYBIND11_MODULE(_fastseqio, m)
       .def("readFasta", &seqioFileImpl::readFasta)
       .def("readFastq", &seqioFileImpl::readFastq)
       .def("writeFasta", &seqioFileImpl::writeFasta)
-      .def("writeFastq", &seqioFileImpl::writeFastq);
+      .def("writeFastq", &seqioFileImpl::writeFastq)
+      .def("close", &seqioFileImpl::close)
+      .def("fflush", &seqioFileImpl::fflush)
+      .def("reset", &seqioFileImpl::reset);
 }

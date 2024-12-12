@@ -62,7 +62,7 @@ ensureReadable(seqioFile* sf)
 }
 
 static inline void
-clearBuffer(seqioFile* sf)
+resetBuffer(seqioFile* sf)
 {
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
@@ -116,20 +116,29 @@ readDataToBuffer(seqioFile* sf)
 static inline void
 freshDataToFile(seqioFile* sf)
 {
+  if (sf->pravite.mode == seqOpenModeRead)
+    return;
 #ifdef enable_gzip
   if (sf->pravite.options->isGzipped) {
     gzwrite(sf->pravite.file, sf->buffer.data + sf->buffer.offset,
             sf->buffer.left);
+    gzflush(sf->pravite.file, Z_SYNC_FLUSH);
   } else {
     fwrite(sf->buffer.data + sf->buffer.offset, 1, sf->buffer.left,
            sf->pravite.file);
+    fflush(sf->pravite.file);
   }
 #else
   fwrite(sf->buffer.data + sf->buffer.offset, 1, sf->buffer.left, sf->file);
 #endif
   sf->buffer.offset = 0;
   sf->buffer.left = 0;
-  fflush(stdout);
+}
+
+void
+seqioFlush(seqioFile* sf)
+{
+  freshDataToFile(sf);
 }
 
 static inline void
@@ -189,6 +198,8 @@ seqioStringFree(seqioString* string)
 static inline void
 seqioStringClear(seqioString* string)
 {
+  if (string == NULL)
+    return;
   string->length = 0;
   string->data[0] = '\0';
   return;
@@ -340,7 +351,7 @@ seqioOpen(seqioOpenOptions* options)
     checkFileType = false;
   }
   seqioFile* sf = (seqioFile*)seqioMalloc(sizeof(seqioFile));
-  sf->pravite.file = NULL;
+  memset(sf, 0, sizeof(seqioFile));
   if (sf == NULL) {
     return NULL;
   }
@@ -461,16 +472,15 @@ seqioReset(seqioFile* sf)
     return;
   }
   if (sf->pravite.fromStdin) {
-    sf->buffer.offset = 0;
-    sf->buffer.left = sf->buffer.buffSize;
-    sf->pravite.isEOF = true;
     return;
   }
   resetFilePointer(sf);
-  clearBuffer(sf);
+  resetBuffer(sf);
   if (sf->record != NULL) {
-    seqioFree(sf->record);
-    sf->record = NULL;
+    seqioStringClear(sf->record->name);
+    seqioStringClear(sf->record->comment);
+    seqioStringClear(sf->record->sequence);
+    seqioStringClear(sf->record->quality);
   }
   sf->pravite.state = READ_STATUS_NONE;
   sf->pravite.isEOF = false;
