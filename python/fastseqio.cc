@@ -14,6 +14,8 @@
 
 namespace py = pybind11;
 
+static char EMPTY_STR[] = "\0";
+
 seqioString*
 seqioStringRef(const char* s)
 {
@@ -21,8 +23,7 @@ seqioStringRef(const char* s)
     auto str = new seqioString();
     str->length = 0;
     str->capacity = 0;
-    str->data = new char[1];
-    str->data[0] = '\0';
+    str->data = const_cast<char*>(EMPTY_STR);
     return str;
   }
   auto str = new seqioString();
@@ -304,7 +305,7 @@ public:
   {
     seqioRecord* _record = record->as_seqioRecord();
     seqioWriteFasta(file, _record, NULL);
-    seqioFree(_record);
+    delete _record;
   }
 
   void
@@ -312,7 +313,7 @@ public:
   {
     seqioRecord* _record = record->as_seqioRecord();
     seqioWriteFastq(file, _record, NULL);
-    seqioFree(_record);
+    delete _record;
   }
 
 private:
