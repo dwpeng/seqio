@@ -16,5 +16,4 @@ test-cigar
 .venv
 /build
 *.egg-info
-*
 *.pyc

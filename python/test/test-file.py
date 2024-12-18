@@ -1,53 +1,96 @@
 import os
+
 from fastseqio import seqioFile, Record
 
-file = seqioFile("test-data/test2.fa")
+def test_read():
+    file = seqioFile("test-data/test2.fa")
 
-for record in file:
-    print(record.name)
-    print(record.sequence)
-    print(len(record))
-    print(record.upper())
-    print(record.hpc_commpress())
-    print("##############")
+    records = []
+    for record in file:
+        records.append(record)
 
-for record in file:
-    print(record.name)
+    assert len(records) == 3
 
-print("NO Data")
+    assert records[0].name == "a"
+    assert records[1].name == "b"
+    assert records[2].name == "c"
 
-file.reset()
-for record in file:
-    print("####", record.name)
+    records = []
+    for record in file:
+        records.append(record)
 
-record = Record("test", "ACGGGGGGGTTTT")
+    assert len(records) == 0
 
-print(record.hpc_commpress())
+    file.reset()
 
-file = seqioFile("out.fa", "w")
+    records = []
+    for record in file:
+        records.append(record)
 
-file.writeFasta(record)
-file.writeFasta(record)
+    assert len(records) == 3
 
-file.close()
 
-content = ">test\nACGGGGGGGTTTT\n>test\nACGGGGGGGTTTT\n"
+def test_write():
+    file = seqioFile("out.fa", "w")
 
-with open("out.fa", "r") as fp:
-    data = fp.read()
-    print(data)
-    assert data == content
+    record = Record("test", "ACGGGGGGGTTTT")
 
-os.remove("out.fa")
+    file.writeFasta(record)
+    file.writeFasta(record)
 
-id1 = id(record.sequence)
-id2 = id(record.sequence)
-print(id1, id2, id1 == id2)
+    file.close()
 
-record.sequence = record.sequence
+    content = ">test\nACGGGGGGGTTTT\n>test\nACGGGGGGGTTTT\n"
 
-print(record.sequence)
+    with open("out.fa", "r") as fp:
+        data = fp.read()
+        assert data == content
 
-record.sequence += "AAAAAAAAA"
+    os.remove("out.fa")
 
-print(record.sequence)
+def test_write_gz():
+    file = seqioFile("out.fa.gz", "w")
+
+    record = Record("test", "ACGGGGGGGTTTT")
+
+    file.writeFasta(record)
+    file.writeFasta(record)
+
+    file.close()
+
+    content = ">test\nACGGGGGGGTTTT\n>test\nACGGGGGGGTTTT\n"
+
+    with open("out.fa.gz", "rb") as fp:
+        data = fp.read()
+        assert data == content.encode()
+
+    os.remove("out.fa.gz")
+
+def test_record():
+    record = Record("test", "ACGGGGGGGTTTT")
+
+    assert record.name == "test"
+    assert record.sequence == "ACGGGGGGGTTTT"
+
+    record.name = "test2"
+    record.sequence = "ACGGGGGGGTTTTTTTT"
+
+    assert record.name == "test2"
+    assert record.sequence == "ACGGGGGGGTTTTTTTT"
+
+    hpc = record.hpc_commpress()
+    assert hpc == "ACGT"
+
+    rev = record.reverse()
+    assert rev == "TTTTTTTTGGGGGGGCA"
+
+    length = record.length()
+    assert length == 17
+
+    length = len(record)
+    assert length == 17
+
+    record.sequence += "xxx"
+    assert record.length() == 20
+    assert record.sequence == "ACGGGGGGGTTTTTTTTxxx"
+    assert len(record) == 20

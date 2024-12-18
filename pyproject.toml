@@ -15,3 +15,8 @@ repository = "https://github.com/dwpeng/fastseqio"
 [build-system]
 requires = ["setuptools>=65.5", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+test = [
+    "pytest>=8.3.4",
+]
