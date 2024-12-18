@@ -61,7 +61,7 @@ jobs:
     strategy:
       matrix:
         python-version: [38, 39, 310, 311, 312, 313]
-        arch: [x86_64, aarch64]
+        arch: [AMD64, ARM64]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -89,14 +89,13 @@ jobs:
           python -m pip install pytest
           python -m pytest python/test/test-file.py
 
-
   test-on-macos:
     name: Build wheels on macOS
     runs-on: macos-latest
     strategy:
       matrix:
         python-version: [38, 39, 310, 311, 312, 313]
-        arch: [AMD64, ARM64]
+        arch: [arm64, x86_64, universal2]
     steps:
       - uses: actions/checkout@v3
         with:
